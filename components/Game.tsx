@@ -1,3 +1,5 @@
+// components/Game.tsx
+
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
@@ -67,11 +69,14 @@ export default function Game() {
     setBoard(prevBoard => {
       const newBoard = [...prevBoard];
       const currentRow = [...newBoard[currentRowIndex]];
-      const lastFilledTileIndex = currentRow.map(tile => tile.letter).lastIndexOf('') - 1;
+      const lastFilledTileIndex = currentRow.findIndex(tile => !tile.letter) - 1;
       if (lastFilledTileIndex >= 0) {
         currentRow[lastFilledTileIndex] = { ...currentRow[lastFilledTileIndex], letter: '' };
-        newBoard[currentRowIndex] = currentRow;
+      } else if (currentRow[4].letter) {
+        // If all tiles are filled, clear the last one
+        currentRow[4] = { ...currentRow[4], letter: '' };
       }
+      newBoard[currentRowIndex] = currentRow;
       return newBoard;
     });
   }
