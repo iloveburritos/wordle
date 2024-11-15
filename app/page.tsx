@@ -16,6 +16,9 @@ export default function Home() {
           <Button size="lg">
             Play Game
           </Button>
+          <Button className="ml-10" size="lg">
+            Start a Team
+          </Button>
         </Link>
       </main>
     </div>

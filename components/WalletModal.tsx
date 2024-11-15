@@ -73,6 +73,7 @@ export const WalletButton: React.FC<WalletButtonProps> = ({ className }) => {
         onClick={handleClick}
         aria-haspopup="true"
         aria-expanded={isDropdownOpen}
+        
       >
         {authenticated ? "Logged In" : "Connect Wallet"}
       </button>
@@ -95,6 +96,7 @@ export const WalletButton: React.FC<WalletButtonProps> = ({ className }) => {
               onClick={() => setIsDropdownOpen(false)}
               className="flex items-center w-full px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground whitespace-nowrap"
               role="menuitem"
+              
             >
               <X className="mr-2 h-4 w-4 flex-shrink-0" /> Close
             </button>

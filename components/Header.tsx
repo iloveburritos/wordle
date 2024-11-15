@@ -21,7 +21,7 @@ export default function Header() {
           />
         </Link>
         <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4" >
             <WalletButton />
           </div>
         </div>
