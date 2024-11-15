@@ -11,14 +11,12 @@ export default function Header() {
       <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
         <Link href="/" className="flex items-center w-full md:w-auto justify-center md:justify-start mb-4 md:mb-0">
           <Image
-            src="/images/SC_logo.png"
-            alt="Stoner Cats Logo"
-            width={250}
+            src="/wordle-logo.png"
+            alt="Wordle"
+            width={40  }
             height={75}
             className="h-auto"
             priority
-            placeholder="blur"
-            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg=="
           />
         </Link>
         <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
