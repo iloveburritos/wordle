@@ -7,6 +7,7 @@ import { getWordOfTheDay, allWords } from '../lib/words'
 import Keyboard from './Keyboard'
 import { LetterState } from '../lib/types'
 import styles from '../styles/Game.module.css'
+import GameOverModal from './GameOverModal'
 
 const icons = {
   [LetterState.CORRECT]: '🟩',
@@ -32,19 +33,24 @@ export default function Game() {
   const [success, setSuccess] = useState(false)
   const [letterStates, setLetterStates] = useState<Record<string, LetterState>>({})
   const [allowInput, setAllowInput] = useState(true)
+  const [isGameOverModalOpen, setIsGameOverModalOpen] = useState(false)
+  const [gameOverMessage, setGameOverMessage] = useState('')
 
   const currentRow = useMemo(() => board[currentRowIndex], [board, currentRowIndex])
 
-  const onKey = useCallback((key: string) => {
-    if (!allowInput) return
-    if (/^[a-zA-Z]$/.test(key)) {
-      fillTile(key.toLowerCase())
-    } else if (key === 'Backspace') {
-      clearTile()
-    } else if (key === 'Enter') {
-      completeRow()
-    }
-  }, [allowInput, currentRowIndex, board])
+  const onKey = useCallback(
+    (key: string) => {
+      if (!allowInput) return
+      if (/^[a-zA-Z]$/.test(key)) {
+        fillTile(key.toLowerCase())
+      } else if (key === 'Backspace') {
+        clearTile()
+      } else if (key === 'Enter') {
+        completeRow()
+      }
+    },
+    [allowInput, currentRowIndex, board]
+  )
 
   useEffect(() => {
     const handleKeyup = (e: KeyboardEvent) => onKey(e.key)
@@ -53,32 +59,32 @@ export default function Game() {
   }, [onKey])
 
   const fillTile = (letter: string) => {
-    setBoard(prevBoard => {
-      const newBoard = [...prevBoard];
-      const currentRow = [...newBoard[currentRowIndex]];
-      const emptyTileIndex = currentRow.findIndex(tile => !tile.letter);
+    setBoard((prevBoard) => {
+      const newBoard = [...prevBoard]
+      const currentRow = [...newBoard[currentRowIndex]]
+      const emptyTileIndex = currentRow.findIndex((tile) => !tile.letter)
       if (emptyTileIndex !== -1) {
-        currentRow[emptyTileIndex] = { ...currentRow[emptyTileIndex], letter };
-        newBoard[currentRowIndex] = currentRow;
+        currentRow[emptyTileIndex] = { ...currentRow[emptyTileIndex], letter }
+        newBoard[currentRowIndex] = currentRow
       }
-      return newBoard;
-    });
+      return newBoard
+    })
   }
 
   const clearTile = () => {
-    setBoard(prevBoard => {
-      const newBoard = [...prevBoard];
-      const currentRow = [...newBoard[currentRowIndex]];
-      const lastFilledTileIndex = currentRow.findIndex(tile => !tile.letter) - 1;
+    setBoard((prevBoard) => {
+      const newBoard = [...prevBoard]
+      const currentRow = [...newBoard[currentRowIndex]]
+      const lastFilledTileIndex = currentRow.findIndex((tile) => !tile.letter) - 1
       if (lastFilledTileIndex >= 0) {
-        currentRow[lastFilledTileIndex] = { ...currentRow[lastFilledTileIndex], letter: '' };
+        currentRow[lastFilledTileIndex] = { ...currentRow[lastFilledTileIndex], letter: '' }
       } else if (currentRow[4].letter) {
         // If all tiles are filled, clear the last one
-        currentRow[4] = { ...currentRow[4], letter: '' };
+        currentRow[4] = { ...currentRow[4], letter: '' }
       }
-      newBoard[currentRowIndex] = currentRow;
-      return newBoard;
-    });
+      newBoard[currentRowIndex] = currentRow
+      return newBoard
+    })
   }
 
   const completeRow = () => {
@@ -113,18 +119,20 @@ export default function Game() {
         }
       })
 
-      setBoard(prevBoard => {
+      setBoard((prevBoard) => {
         const newBoard = [...prevBoard]
         newBoard[currentRowIndex] = newRow
         return newBoard
       })
 
-      setLetterStates(prevStates => {
+      setLetterStates((prevStates) => {
         const newStates = { ...prevStates }
-        newRow.forEach(tile => {
-          if (tile.state === LetterState.CORRECT || 
-              (tile.state === LetterState.PRESENT && newStates[tile.letter] !== LetterState.CORRECT) ||
-              (!newStates[tile.letter] && tile.state === LetterState.ABSENT)) {
+        newRow.forEach((tile) => {
+          if (
+            tile.state === LetterState.CORRECT ||
+            (tile.state === LetterState.PRESENT && newStates[tile.letter] !== LetterState.CORRECT) ||
+            (!newStates[tile.letter] && tile.state === LetterState.ABSENT)
+          ) {
             newStates[tile.letter] = tile.state
           }
         })
@@ -134,18 +142,22 @@ export default function Game() {
       setAllowInput(false)
       if (newRow.every((tile) => tile.state === LetterState.CORRECT)) {
         setTimeout(() => {
+          const message = ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][currentRowIndex]
+          setGameOverMessage(message)
           setGrid(genResultGrid())
-          showMessage(['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][currentRowIndex], -1)
           setSuccess(true)
+          setIsGameOverModalOpen(true)
+        }, 1600)
+      } else if (currentRowIndex === board.length - 1) {
+        setTimeout(() => {
+          setGameOverMessage(`The answer was ${answer.toUpperCase()}`)
+          setGrid(genResultGrid())
+          setIsGameOverModalOpen(true)
         }, 1600)
       } else if (currentRowIndex < board.length - 1) {
-        setCurrentRowIndex(prevIndex => prevIndex + 1)
+        setCurrentRowIndex((prevIndex) => prevIndex + 1)
         setTimeout(() => {
           setAllowInput(true)
-        }, 1600)
-      } else {
-        setTimeout(() => {
-          showMessage(answer.toUpperCase(), -1)
         }, 1600)
       }
     } else {
@@ -179,12 +191,21 @@ export default function Game() {
       .join('\n')
   }
 
+  const handleShare = () => {
+    // Implement share functionality
+    console.log('Share functionality to be implemented')
+  }
+
+  const handleSeeResults = () => {
+    // Implement see results functionality
+    console.log('See results functionality to be implemented')
+  }
+
   return (
     <div>
       {message && (
         <div className={styles.message}>
           {message}
-          {grid && <pre>{grid}</pre>}
         </div>
       )}
       <header>
@@ -234,6 +255,16 @@ export default function Game() {
         ))}
       </div>
       <Keyboard onKey={onKey} letterStates={letterStates} />
+      <GameOverModal
+        isOpen={isGameOverModalOpen}
+        onClose={() => setIsGameOverModalOpen(false)}
+        onShare={handleShare}
+        onSeeResults={handleSeeResults}
+        score={currentRowIndex + 1}
+        totalAttempts={board.length}
+        message={gameOverMessage}
+        grid={grid}
+      />
     </div>
   )
 }
