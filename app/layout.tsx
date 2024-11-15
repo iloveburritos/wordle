@@ -1,5 +1,8 @@
+// app/layout.tsx
+
 import type { Metadata } from "next";
 import "../styles/globals.css";
+import Header from "@/components/Header"; // Import the Header component
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -13,10 +16,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        
-      >
-        {children}
+      <body>
+        <Header /> {/* Render the Header component at the top */}
+        {children} {/* Page content will render below the Header */}
       </body>
     </html>
   );
