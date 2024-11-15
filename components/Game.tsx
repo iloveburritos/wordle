@@ -202,23 +202,13 @@ export default function Game() {
   }
 
   return (
-    <div>
+    <div className="pt-4">
       {message && (
         <div className={styles.message}>
           {message}
         </div>
       )}
-      <header>
-        <h1>VVORDLE</h1>
-        <a
-          id="source-link"
-          href="https://github.com/yyx990803/vue-wordle"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Source
-        </a>
-      </header>
+
       <div id="board" className={styles.board}>
         {board.map((row, rowIndex) => (
           <div
