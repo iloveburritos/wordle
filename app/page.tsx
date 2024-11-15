@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button'
 
 export default function Home() {
   return (
@@ -12,15 +13,11 @@ export default function Home() {
           An on-chain version of the popular NYT game, built with Next and for Ethereum. 
         </p>
         <Link href="/game">
-          <div className="rounded-full border border-solid border-transparent transition-colors bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5">
+          <Button size="lg">
             Play Game
-          </div>
+          </Button>
         </Link>
-
-
       </main>
-    
-
     </div>
   );
 }

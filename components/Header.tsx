@@ -3,7 +3,8 @@
 import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { WalletButton } from './WalletModal' 
+import { WalletButton } from './WalletModal'
+import { Button } from '@/components/ui/button'
 
 export default function Header() {
   return (
@@ -13,7 +14,7 @@ export default function Header() {
           <Image
             src="/wordle-logo.png"
             alt="Wordle"
-            width={40  }
+            width={40}
             height={75}
             className="h-auto"
             priority
@@ -27,4 +28,4 @@ export default function Header() {
       </div>
     </header>
   )
-} 
+}
