@@ -1,5 +1,7 @@
 // components/PrivyWrapper.tsx
 
+'use client';
+
 import { useEffect } from 'react';
 import { PrivyProvider } from '@privy-io/react-auth';
 

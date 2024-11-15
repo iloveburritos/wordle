@@ -1,14 +1,12 @@
 // app/game/page.tsx
 
 import React from 'react';
-import Game from '../../components/Game';
+import Game from '@/components/Game';
 
-const GamePage: React.FC = () => {
+export default function GamePage() {
   return (
-    <div className="game-page">
+    <div className="container mx-auto px-4 py-8">
       <Game />
     </div>
   );
-};
-
-export default GamePage;
+}
