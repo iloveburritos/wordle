@@ -1,4 +1,3 @@
-// components/Keyboard.tsx
 import React from 'react'
 import { LetterState } from '../lib/types'
 import styles from '../styles/Keyboard.module.css'

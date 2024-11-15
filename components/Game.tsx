@@ -53,10 +53,11 @@ export default function Game() {
   const fillTile = (letter: string) => {
     setBoard(prevBoard => {
       const newBoard = [...prevBoard];
-      const row = newBoard[currentRowIndex];
-      const emptyTileIndex = row.findIndex(tile => !tile.letter);
+      const currentRow = [...newBoard[currentRowIndex]];
+      const emptyTileIndex = currentRow.findIndex(tile => !tile.letter);
       if (emptyTileIndex !== -1) {
-        row[emptyTileIndex] = { ...row[emptyTileIndex], letter: letter };
+        currentRow[emptyTileIndex] = { ...currentRow[emptyTileIndex], letter };
+        newBoard[currentRowIndex] = currentRow;
       }
       return newBoard;
     });
@@ -65,10 +66,11 @@ export default function Game() {
   const clearTile = () => {
     setBoard(prevBoard => {
       const newBoard = [...prevBoard];
-      const row = newBoard[currentRowIndex];
-      const lastFilledTileIndex = row.map(tile => tile.letter).lastIndexOf('');
-      if (lastFilledTileIndex !== 5) {
-        row[lastFilledTileIndex - 1] = { ...row[lastFilledTileIndex - 1], letter: '' };
+      const currentRow = [...newBoard[currentRowIndex]];
+      const lastFilledTileIndex = currentRow.map(tile => tile.letter).lastIndexOf('') - 1;
+      if (lastFilledTileIndex >= 0) {
+        currentRow[lastFilledTileIndex] = { ...currentRow[lastFilledTileIndex], letter: '' };
+        newBoard[currentRowIndex] = currentRow;
       }
       return newBoard;
     });
