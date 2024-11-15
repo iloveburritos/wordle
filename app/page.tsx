@@ -1,10 +1,29 @@
-// app/page.tsx
+'use client'
 
-import React from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button'
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { usePrivy } from '@privy-io/react-auth';
+import { Button } from '@/components/ui/button';
+import ErrorModal from '@/components/error-modal';
 
 export default function Home() {
+  const router = useRouter();
+  const { ready, authenticated } = usePrivy();
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+
+  const handleAction = (action: string) => {
+    if (!authenticated) {
+      setIsErrorModalOpen(true);
+    } else {
+      if (action === 'play') {
+        router.push('/game');
+      } else if (action === 'team') {
+        // Implement team creation logic here
+        console.log('Start a team');
+      }
+    }
+  };
+
   return (
     <div className="grid grid-rows-[1fr_auto] min-h-[calc(100vh-88px)] p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-8 items-center sm:items-start text-center sm:text-left">
@@ -12,15 +31,19 @@ export default function Home() {
         <p className="text-sm sm:text-base">
           An on-chain version of the popular NYT game, built with Next and for Ethereum. 
         </p>
-        <Link href="/game">
-          <Button size="lg">
+        <div className="flex gap-4">
+          <Button size="lg" onClick={() => handleAction('play')}>
             Play Game
           </Button>
-          <Button className="ml-10" size="lg">
+          <Button size="lg" onClick={() => handleAction('team')}>
             Start a Team
           </Button>
-        </Link>
+        </div>
       </main>
+      <ErrorModal 
+        isOpen={isErrorModalOpen} 
+        onClose={() => setIsErrorModalOpen(false)} 
+      />
     </div>
   );
 }
