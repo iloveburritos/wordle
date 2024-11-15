@@ -81,6 +81,24 @@
   transform: rotateX(0deg);
 }
 
+.tile .back.correct {
+  background-color: #6aaa64;
+  border-color: #6aaa64;
+  color: #fff;
+}
+
+.tile .back.present {
+  background-color: #c9b458;
+  border-color: #c9b458;
+  color: #fff;
+}
+
+.tile .back.absent {
+  background-color: #787c7e;
+  border-color: #787c7e;
+  color: #fff;
+}
+
 @keyframes zoom {
   0% {
     transform: scale(1.1);
