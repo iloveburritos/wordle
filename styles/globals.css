@@ -1,5 +1,5 @@
-/* Import fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+/* Import fonts - fixing the Inter font import */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
@@ -9,127 +9,101 @@
 @tailwind components;
 @tailwind utilities;
 
-
 :root {
   --background: #000000;
   --text-color: #ffffff;
-
+  --button-bg: #ffffff;
+  --button-text: #000000;
+  --button-hover: #f0f0f0;
+  --header-bg: rgba(0, 0, 0, 0.8);
+  --header-text: #ffffff;
+  --footer-bg: rgba(0, 0, 0, 0.8);
+  --footer-text: #ffffff;
+  --heading-color: #ffffff;
 }
 
-/* Core Styling */
-body {
-  background-color: var(--background);
-  color: var(--text-color);
-  font-family: "Exo", sans-serif;
-  font-size: 1rem;
-  line-height: 1.5;
+@layer base {
+  body {
+    @apply bg-black text-white font-exo text-base leading-relaxed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-vt323 leading-tight text-white;
+  }
+
+  h1 { @apply text-[3.5rem]; }
+  h2 { @apply text-[3rem]; }
+  h3 { @apply text-[2.5rem]; }
+  h4 { @apply text-[2rem] leading-snug; }
+  h5 { @apply text-[1.5rem] leading-normal; }
+  h6 { @apply text-[1.5rem] text-[lime]; }
+
+  p {
+    @apply mb-0 font-space-mono;
+  }
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: "VT323", monospace;
-  line-height: 1.2;
-  color: var(--heading-color);
+@layer components {
+  .button {
+    @apply bg-white text-black px-4 py-2 uppercase text-2xl font-vt323 transition-colors
+           hover:bg-[#f0f0f0] hover:shadow-[inset_2px_2px_2px_#11111136];
+  }
+
+  .w-layout-grid {
+    @apply grid grid-cols-2 gap-4;
+  }
+
+  .w-checkbox, 
+  .w-checkbox-input, 
+  .w-form-formradioinput--inputType-custom {
+    @apply flex items-center;
+  }
+
+  .w-checkbox-input--inputType-custom.w--redirected-checked {
+    @apply bg-[#3898ec];
+  }
+
+  .header {
+    @apply bg-header-bg text-header-text p-8 text-center;
+  }
+
+  .footer {
+    @apply bg-footer-bg text-footer-text p-4 text-center;
+  }
+
+  .container {
+    @apply max-w-[80rem] mx-auto px-4;
+  }
 }
 
-h1 { font-size: 3.5rem; }
-h2 { font-size: 3rem; }
-h3 { font-size: 2.5rem; }
-h4 { font-size: 2rem; line-height: 1.3; }
-h5 { font-size: 1.5rem; line-height: 1.4; }
-h6 { font-size: 1.5rem; color: lime; }
+@layer utilities {
+  .text-neon {
+    @apply text-[lime] !important;
+  }
 
+  .margin-0 { @apply m-0 !important; }
+  .margin-sm { @apply m-4; }
+  .margin-md { @apply m-8; }
+  .margin-lg { @apply m-12; }
 
-p {
-  margin-bottom: 0;
-  font-family: "Space Mono", monospace;
+  .padding-0 { @apply p-0 !important; }
+  .padding-sm { @apply p-4; }
+  .padding-md { @apply p-8; }
+  .padding-lg { @apply p-12; }
+
+  .hide { @apply hidden; }
 }
-
-/* Utility Classes */
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-uppercase { text-transform: uppercase; }
-.text-white {color: #ffffff !important;   }
-.text-neon { color: lime !important; }
-
-.button {
-  background-color: var(--button-bg);
-  color: var(--button-text);
-  padding: 0.5rem 1rem;
-  text-transform: uppercase;
-  font-size: 1.5rem;
-  font-family: "VT323", sans-serif;
-}
-
-.button:hover {
-  background-color: var(--button-hover);
-  box-shadow: inset 2px 2px 2px #11111136;
-}
-
-/* Grid Layout */
-.w-layout-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-gap: 16px;
-}
-
-/* Form Styles */
-.w-checkbox, .w-checkbox-input, .w-form-formradioinput--inputType-custom {
-  display: flex;
-  align-items: center;
-}
-
-.w-checkbox-input--inputType-custom.w--redirected-checked {
-  background-color: #3898ec;
-}
-
-/* Margin & Padding Utilities */
-.margin-0 { margin: 0 !important; }
-.margin-sm { margin: 1rem; }
-.margin-md { margin: 2rem; }
-.margin-lg { margin: 3rem; }
-
-.padding-0 { padding: 0 !important; }
-.padding-sm { padding: 1rem; }
-.padding-md { padding: 2rem; }
-.padding-lg { padding: 3rem; }
 
 /* Media Queries */
 @media screen and (max-width: 991px) {
-  h1 { font-size: 3rem; }
-  h2 { font-size: 2.5rem; }
-  .button { font-size: 1.125rem; padding: 0.5rem; }
+  h1 { @apply text-[3rem]; }
+  h2 { @apply text-[2.5rem]; }
+  .button { @apply text-lg py-2; }
 }
 
 @media screen and (max-width: 767px) {
-  h1 { font-size: 2.5rem; }
-  h2 { font-size: 2rem; }
-  h3 { font-size: 1.75rem; }
-  h4 { font-size: 1.5rem; }
-}
-
-/* Component-Specific Styling */
-.header {
-  background-color: var(--header-bg);
-  color: var(--header-text);
-  padding: 2rem;
-  text-align: center;
-}
-
-.footer {
-  background-color: var(--footer-bg);
-  color: var(--footer-text);
-  padding: 1rem;
-  text-align: center;
-}
-
-.container {
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.hide { display: none; }
-
-.rounded-full {
-  border-radius: 9999px; /* Fully rounded */
+  h1 { @apply text-[2.5rem]; }
+  h2 { @apply text-[2rem]; }
+  h3 { @apply text-[1.75rem]; }
+  h4 { @apply text-[1.5rem]; }
 }
