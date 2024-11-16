@@ -1,28 +1,13 @@
-'use client'
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { EncryptedGameResult, GameResult, icons, LetterState } from '../lib/types';
+import { decryptGameResult } from '../lib/decryptGameResult';
 
 interface AIMChatProps {
   chatName: string;
   encryptedResult: EncryptedGameResult;
 }
-
-// Mock function to decrypt EncryptedGameResult
-const mockDecrypt = (encrypted: EncryptedGameResult): GameResult => {
-  const mockBoard = Array(6).fill(null).map(() => 
-    Array(5).fill(null).map(() => ({
-      letter: 'A',
-      state: LetterState.CORRECT
-    }))
-  );
-  return {
-    board: mockBoard,
-    encryptedString: encrypted,
-    isSuccessful: true,
-    score: 100
-  };
-};
 
 const renderGrid = (board: GameResult['board']): string => {
   return board
@@ -32,12 +17,36 @@ const renderGrid = (board: GameResult['board']): string => {
 
 const AIMChat: React.FC<AIMChatProps> = ({ chatName, encryptedResult }) => {
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
+  const [currentDate, setCurrentDate] = useState('');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // In a real scenario, you'd use an actual decryption function here
-    const decryptedResult = mockDecrypt(encryptedResult);
+    // Mark the component as mounted so that it only renders on the client
+    setMounted(true);
+
+    // Set the current date in GMT format
+    const date = new Date();
+    const gmtDate = date.toISOString().replace('T', ' ').split('.')[0] + ' GMT';
+    setCurrentDate(gmtDate);
+
+    // Decrypt the result using the decryptGameResult function
+    const decryptedBoard = decryptGameResult(encryptedResult);
+    console.log("Decrypted GameResult in AIMChat:", decryptedBoard); // Debugging log
+
+    // Construct the GameResult object based on the decrypted board
+    const decryptedResult: GameResult = {
+      board: decryptedBoard,
+      encryptedString: encryptedResult,
+      isSuccessful: decryptedBoard.some(row => row.every(tile => tile.state === LetterState.CORRECT)),
+      score: decryptedBoard.filter(row => row.some(tile => tile.state !== LetterState.INITIAL)).length
+    };
+
     setGameResult(decryptedResult);
   }, [encryptedResult]);
+
+  if (!mounted) {
+    return null; // Return null on the initial server render to avoid mismatch
+  }
 
   return (
     <div className="flex flex-col h-full max-w-md mx-auto border border-gray-300 rounded-md overflow-hidden">
@@ -52,7 +61,7 @@ const AIMChat: React.FC<AIMChatProps> = ({ chatName, encryptedResult }) => {
           {/* System message */}
           <div className="text-gray-500 text-sm">
             <span className="font-bold">System: </span>
-            <span>{new Date().toLocaleString()}</span>
+            <span>{currentDate}</span>
             <p>Welcome to the chat! Here are your game results:</p>
           </div>
 
@@ -61,7 +70,7 @@ const AIMChat: React.FC<AIMChatProps> = ({ chatName, encryptedResult }) => {
             <div className="bg-gray-100 p-2 rounded">
               <div className="text-gray-500 text-sm">
                 <span className="font-bold">GameBot: </span>
-                <span>{new Date().toLocaleString()}</span>
+                <span>{currentDate}</span>
               </div>
               <pre className="mt-2 font-mono text-sm">
                 {renderGrid(gameResult.board)}
@@ -74,16 +83,6 @@ const AIMChat: React.FC<AIMChatProps> = ({ chatName, encryptedResult }) => {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Chat input (disabled) */}
-      <div className="bg-gray-100 p-2">
-        <input 
-          type="text" 
-          className="w-full p-2 rounded border border-gray-300 bg-gray-200" 
-          placeholder="You can't type here..." 
-          disabled 
-        />
       </div>
     </div>
   );

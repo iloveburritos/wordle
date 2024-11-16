@@ -1,9 +1,12 @@
+// components/Game.tsx
+
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getWordOfTheDay, allWords } from '../lib/words';
 import Keyboard from './Keyboard';
 import { LetterState, icons, GameBoard, GameResult } from '../lib/types';
+import { encryptGameResult } from '../lib/encryptGameResult'; // Assuming you have this encryption function
 import styles from '../styles/Game.module.css';
 import GameOverModal from './GameOverModal';
 
@@ -52,6 +55,31 @@ export default function Game() {
     return () => window.removeEventListener('keyup', handleKeyup);
   }, [onKey]);
 
+  // Function to handle sending result to API
+  const sendResultToAPI = async (encryptedResult: string, isSuccessful: boolean, score: number) => {
+    try {
+      const response = await fetch('/api/submit-result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          encryptedResult,
+          isSuccessful,
+          score,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to send result:', response.statusText);
+      } else {
+        console.log('Result sent successfully');
+      }
+    } catch (error) {
+      console.error('Error sending result:', error);
+    }
+  };
+
   // Functions to handle tile filling, clearing, and row completion
   const fillTile = (letter: string) => {
     setBoard((prevBoard) => {
@@ -92,6 +120,7 @@ export default function Game() {
 
       const answerLetters: (string | null)[] = answer.split('');
       const newRow = [...currentRow];
+
       // Mark tiles with the appropriate state
       newRow.forEach((tile, i) => {
         if (answerLetters[i] === tile.letter) {
@@ -134,19 +163,19 @@ export default function Game() {
       });
 
       setAllowInput(false);
-      if (newRow.every((tile) => tile.state === LetterState.CORRECT)) {
-        setTimeout(() => {
-          const message = ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][currentRowIndex];
+
+      if (newRow.every((tile) => tile.state === LetterState.CORRECT) || currentRowIndex === board.length - 1) {
+        const finalSuccess = newRow.every((tile) => tile.state === LetterState.CORRECT);
+        setTimeout(async () => {
+          const message = finalSuccess ? ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][currentRowIndex] : `The answer was ${answer.toUpperCase()}`;
           setGameOverMessage(message);
           setGrid(genResultGrid());
-          setSuccess(true);
+          setSuccess(finalSuccess);
           setIsGameOverModalOpen(true);
-        }, 1600);
-      } else if (currentRowIndex === board.length - 1) {
-        setTimeout(() => {
-          setGameOverMessage(`The answer was ${answer.toUpperCase()}`);
-          setGrid(genResultGrid());
-          setIsGameOverModalOpen(true);
+
+          // Encrypt and send the game result to the API endpoint
+          const encryptedResult = encryptGameResult(board);
+          await sendResultToAPI(encryptedResult, finalSuccess, currentRowIndex + 1);
         }, 1600);
       } else if (currentRowIndex < board.length - 1) {
         setCurrentRowIndex((prevIndex) => prevIndex + 1);
