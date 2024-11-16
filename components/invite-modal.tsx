@@ -1,9 +1,7 @@
-// components/invite-modal.tsx
-
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Check, ChevronsUpDown, Mail, Globe, Phone, Wallet, Share2 } from 'lucide-react'
+import { Check, ChevronsUpDown, Mail, Globe, Phone, Wallet, Share2, Plus } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
@@ -32,126 +30,86 @@ interface InviteModalProps {
 
 export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
   const [open, setOpen] = useState(false)
-  const [value, setValue] = useState<IdentifierType['value'] | ''>('')
-  const [identifier, setIdentifier] = useState('')
-  const [error, setError] = useState('')
+  const [invites, setInvites] = useState([{ id: 1, identifier: '' }])
+  const [errors, setErrors] = useState<{ [key: number]: string }>({})
 
-  // Debugging: Log component mounts and data availability
-  useEffect(() => {
-    console.log('Component mounted with identifierTypes:', identifierTypes)
-  }, [])
-
-  const handleShare = () => {
-    console.log(`Sharing invite for ${value}: ${identifier}`)
-    onClose()
+  const resetForm = () => {
+    setInvites([{ id: 1, identifier: '' }])
+    setErrors({})
   }
 
-  const validateIdentifier = (type: IdentifierType['value'], value: string) => {
-    setError('')
-    switch (type) {
-      case 'email':
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          setError('Invalid email address')
-        }
-        break
-      case 'ens':
-        if (!value.endsWith('.eth')) {
-          setError('Invalid ENS domain')
-        }
-        break
-      case 'phone':
-        if (!/^\+?[1-9]\d{1,14}$/.test(value)) {
-          setError('Invalid phone number')
-        }
-        break
-      case 'wallet':
-        if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
-          setError('Invalid wallet address')
-        }
-        break
+  const addInviteField = () => {
+    // Add only if the last row is valid
+    if (invites[invites.length - 1].identifier && !errors[invites.length - 1]) {
+      setInvites([...invites, { id: invites.length + 1, identifier: '' }])
     }
-    console.log('Validation error:', error)
+  }
+
+  const handleIdentifierChange = (id: number, identifier: string) => {
+    const updatedInvites = invites.map(invite =>
+      invite.id === id ? { ...invite, identifier } : invite
+    )
+    setInvites(updatedInvites)
+    validateIdentifier(identifier, id)
+  }
+
+  const validateIdentifier = (value: string, id: number) => {
+    const errorMessages = { ...errors }
+    if (!/^0x[a-fA-F0-9]{40}$/.test(value) && !value.endsWith('.eth')) {
+      errorMessages[id] = 'Enter a valid wallet address or ENS domain'
+    } else {
+      errorMessages[id] = ''
+    }
+    setErrors(errorMessages)
+  }
+
+  const handleSendInvites = () => {
+    console.log(invites)  // Placeholder for invite processing logic
+    resetForm()
+    onClose()  // Close the modal after sending invites
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] bg-black opacity-80">
+      <DialogContent className="sm:max-w-[500px] bg-black bg-opacity-80">
         <DialogHeader>
-          <DialogTitle>Invite to Play</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Invite to Play</DialogTitle>
         </DialogHeader>
+
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="identifier-type" className="text-right">
-              Type
-            </Label>
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className="col-span-3 justify-between"
-                >
-                  {value
-                    ? identifierTypes.find((type) => type.value === value)?.label || "Select identifier type..."
-                    : "Select identifier type..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[200px] p-0 bg-black">
-                <Command>
-                  
-                  <CommandEmpty>No identifier type found.</CommandEmpty>
-                  <CommandList>
-                    <CommandGroup>
-                      {identifierTypes.map((type) => (
-                        <CommandItem
-                          key={type.value}
-                          value={type.value}
-                          onSelect={(currentValue) => {
-                            const selectedValue = currentValue as IdentifierType['value'];
-                            setValue(selectedValue === value ? '' : selectedValue);
-                            setOpen(false);
-                          }}
-                           className="cursor-pointer hover:bg-accent hover:text-accent-foreground"
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              value === type.value ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {React.createElement(type.icon, { className: "mr-2 h-4 w-4" })}
-                          {type.label}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="identifier" className="text-right">
-              Identifier
-            </Label>
-            <Input
-              id="identifier"
-              className="col-span-3"
-              value={identifier}
-              onChange={(e) => {
-                setIdentifier(e.target.value)
-                if (value) {
-                  validateIdentifier(value, e.target.value)
-                }
-              }}
-              placeholder={`Enter ${value || 'identifier'}...`}
-            />
-          </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {invites.map((invite, index) => (
+            <div key={invite.id} className="grid grid-cols-5 items-center gap-4">
+              <Label htmlFor={`identifier-${invite.id}`} className="col-span-1 text-right">
+                Wallet / ENS
+              </Label>
+              <Input
+                id={`identifier-${invite.id}`}
+                className="col-span-4"
+                value={invite.identifier}
+                onChange={(e) => handleIdentifierChange(invite.id, e.target.value)}
+                placeholder="Enter wallet address or ENS domain..."
+              />
+              {errors[invite.id] && (
+                <p className="col-span-5 text-sm text-red-500">{errors[invite.id]}</p>
+              )}
+            </div>
+          ))}
+
+          <Button
+            onClick={addInviteField}
+            variant="outline"
+            className="w-full mt-2"
+            disabled={!invites[invites.length - 1].identifier || !!errors[invites.length - 1]}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Another Invite
+          </Button>
         </div>
-        <Button onClick={handleShare} className="w-full" disabled={!value || !identifier || !!error}>
-          <Share2 className="mr-2 h-4 w-4" /> Share Invite
+
+        <Button
+          onClick={handleSendInvites}
+          className="w-full mt-4"
+        >
+          <Share2 className="mr-2 h-4 w-4" /> Send Invites
         </Button>
       </DialogContent>
     </Dialog>
