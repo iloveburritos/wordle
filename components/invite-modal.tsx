@@ -66,23 +66,27 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
   const validateIdentifier = (id: number, identifier: string) => {
     const errorMessages = { ...errors }
-
+  
     if (!identifier) {
       errorMessages[id] = 'Identifier cannot be empty'
-    } else if (!/^0x[a-fA-F0-9]{40}$/.test(identifier) && !identifier.endsWith('.eth')) {
-      errorMessages[id] = 'Enter a valid wallet address or ENS domain'
+    } else if (
+      !/^0x[a-fA-F0-9]{40}$/.test(identifier) && // Wallet
+      !identifier.endsWith('.eth') && // ENS
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier) // Email
+    ) {
+      errorMessages[id] = 'Enter a valid wallet address, ENS domain, or email'
     } else {
       delete errorMessages[id]
     }
-
+  
     setErrors(errorMessages)
   }
 
   const copyInviteMessage = (identifier: string) => {
-    const websiteUrl = process.env.NEXT_PUBLIC_WEBSITE_URL 
-    const message = `Join my private Wordle group by logging onto ${websiteUrl} using ${identifier}`
-    navigator.clipboard.writeText(message)
-  }
+    const websiteUrl = process.env.NEXT_PUBLIC_WEBSITE_URL;
+    const message = `Join my private Wordle group by logging onto ${websiteUrl} using ${identifier.includes('@') ? 'your email' : identifier}`;
+    navigator.clipboard.writeText(message);
+  };
 
   async function handleSendInvites() {
     if (Object.values(errors).some(error => error) || invites.some(invite => !invite.identifier)) {
