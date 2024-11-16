@@ -23,6 +23,8 @@ const AIMChat: React.FC<AIMChatProps> = ({ chatName, encryptedResult }) => {
   useEffect(() => {
     // Decrypt the result using the decryptGameResult function
     const decryptedBoard = decryptGameResult(encryptedResult);
+    // add console log
+    console.log("Decrypted GameResult in AIMChat:", decryptedBoard); // Debugging log
 
     // Construct the GameResult object based on the decrypted board
     const decryptedResult: GameResult = {
