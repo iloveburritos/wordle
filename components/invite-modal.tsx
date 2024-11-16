@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Check, ChevronsUpDown, Mail, Globe, Phone, Wallet, Share2, Plus } from 'lucide-react'
+import React, { useState } from 'react'
+import { Check, ChevronsUpDown, Mail, Globe, Phone, Wallet, Share2, Plus, Copy } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
@@ -30,17 +30,22 @@ interface InviteModalProps {
 }
 
 export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
-  const [open, setOpen] = useState(false)
   const [invites, setInvites] = useState([{ id: 1, identifier: '' }])
   const [errors, setErrors] = useState<{ [key: number]: string }>({})
+  const [inviteSent, setInviteSent] = useState(false)
 
   const resetForm = () => {
     setInvites([{ id: 1, identifier: '' }])
     setErrors({})
+    setInviteSent(false)
+  }
+
+  const handleClose = () => {
+    resetForm()
+    onClose()
   }
 
   const addInviteField = () => {
-    // Add only if the last row is valid
     if (invites[invites.length - 1].identifier && !errors[invites.length - 1]) {
       setInvites([...invites, { id: invites.length + 1, identifier: '' }])
     }
@@ -51,55 +56,60 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
       invite.id === id ? { ...invite, identifier } : invite
     )
     setInvites(updatedInvites)
-    validateIdentifier(identifier, id)
+    validateIdentifier(id, identifier)
   }
 
-  const validateIdentifier = (value: string, id: number) => {
+  const validateIdentifier = (id: number, identifier: string) => {
     const errorMessages = { ...errors }
-    if (!/^0x[a-fA-F0-9]{40}$/.test(value) && !value.endsWith('.eth')) {
+
+    if (!identifier) {
+      errorMessages[id] = 'Identifier cannot be empty'
+    } else if (!/^0x[a-fA-F0-9]{40}$/.test(identifier) && !identifier.endsWith('.eth')) {
       errorMessages[id] = 'Enter a valid wallet address or ENS domain'
     } else {
       errorMessages[id] = ''
     }
+
     setErrors(errorMessages)
   }
 
+  const copyInviteMessage = (identifier: string) => {
+    const message = `Join my private Wordle group. You can login to ${process.env.NEXT_PUBLIC_WEBSITE_URL} using your (${identifier})`
+    navigator.clipboard.writeText(message)
+  }
+
   async function handleSendInvites() {
+    if (Object.values(errors).some(error => error) || invites.some(invite => !invite.identifier)) {
+      alert("Please fill out all fields correctly before sending invites.")
+      return
+    }
+
     try {
-      // Resolve all identifiers to wallet addresses
       const resolvedInvites = await Promise.all(
         invites.map(async (invite) => {
           const resolvedAddress = await resolveAddress(invite.identifier)
           return { ...invite, resolvedAddress }
         })
       )
-  
-      // Filter out unresolved or invalid addresses (optional, depending on your design)
+
       const addressesToSend = resolvedInvites
         .filter((invite) => invite.resolvedAddress)
         .map((invite) => invite.resolvedAddress)
-  
+
       if (addressesToSend.length === 0) {
         throw new Error("No valid addresses to send invites to.")
       }
-  
-      // Log the resolved addresses or pass them to your smart contract function
+
       console.log("Resolved Addresses:", addressesToSend)
-  
-      // Call your smart contract function here with addressesToSend
-      // await contract.sendInvites(addressesToSend)
-  
-      // Reset form and close modal on success
-      resetForm()
-      onClose()
+
+      setInviteSent(true)
     } catch (error) {
       console.error("Error resolving addresses:", error)
-      // Show an error message to the user if needed
     }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-[90vw] sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px] bg-black bg-opacity-80">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Invite to Play</DialogTitle>
@@ -108,19 +118,15 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
         <div className="grid gap-4 py-4">
           {invites.map((invite, index) => (
             <div key={invite.id} className="flex items-center gap-4">
-              <Label
-                htmlFor={`identifier-${invite.id}`}
-                className="text-right w-24 md:w-32 flex-shrink-0"
-              >
-                Wallet / ENS
-              </Label>
               <Input
-                id={`identifier-${invite.id}`}
-                className="flex-grow"
+                placeholder="Wallet / ENS"
                 value={invite.identifier}
                 onChange={(e) => handleIdentifierChange(invite.id, e.target.value)}
-                placeholder="Enter wallet address or ENS domain..."
+                className="flex-grow"
               />
+              <Button onClick={() => copyInviteMessage(invite.identifier)} variant="ghost" className="flex-shrink-0">
+                <Copy className="h-4 w-4" />
+              </Button>
               {errors[invite.id] && (
                 <p className="text-sm text-red-500 w-full">{errors[invite.id]}</p>
               )}
@@ -133,16 +139,23 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
             className="w-full mt-2 border-none"
             disabled={!invites[invites.length - 1].identifier || !!errors[invites.length - 1]}
           >
-            <Plus className="mr-2 h-4 w-4" /> Add Another Invite
+            <Plus className="mr-2 h-4 w-4" /> Invite another player
           </Button>
         </div>
 
-        <Button
-          onClick={handleSendInvites}
-          className="w-full mt-4"
-        >
-          <Share2 className="mr-2 h-4 w-4" /> Send Invites
-        </Button>
+        {inviteSent ? (
+          <p className="text-center mt-4">
+            Hit the copy button to share a personal invite link
+          </p>
+        ) : (
+          <Button
+            onClick={handleSendInvites}
+            className="w-full mt-4"
+            disabled={Object.values(errors).some(error => error) || invites.some(invite => !invite.identifier)}
+          >
+            <Share2 className="mr-2 h-4 w-4" /> Send Invites
+          </Button>
+        )}
       </DialogContent>
     </Dialog>
   )
