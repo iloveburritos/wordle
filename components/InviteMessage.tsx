@@ -1,3 +1,5 @@
+// components/InviteMessage.tsx
+
 'use client'
 
 import React from 'react'

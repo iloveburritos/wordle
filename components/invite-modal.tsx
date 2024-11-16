@@ -1,3 +1,5 @@
+// components/invite-modal.tsx
+
 'use client'
 
 import React, { useState } from 'react'
@@ -67,7 +69,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
     } else if (!/^0x[a-fA-F0-9]{40}$/.test(identifier) && !identifier.endsWith('.eth')) {
       errorMessages[id] = 'Enter a valid wallet address or ENS domain'
     } else {
-      errorMessages[id] = ''
+      delete errorMessages[id]
     }
 
     setErrors(errorMessages)
@@ -117,18 +119,27 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
         <div className="grid gap-4 py-4">
           {invites.map((invite, index) => (
-            <div key={invite.id} className="flex items-center gap-4">
-              <Input
-                placeholder="Wallet / ENS"
-                value={invite.identifier}
-                onChange={(e) => handleIdentifierChange(invite.id, e.target.value)}
-                className="flex-grow"
-              />
-              <Button onClick={() => copyInviteMessage(invite.identifier)} variant="ghost" className="flex-shrink-0">
-                <Copy className="h-4 w-4" />
-              </Button>
+            <div key={invite.id} className="grid gap-2">
+              <div className="flex items-center gap-4">
+                <Input
+                  placeholder="Wallet / ENS"
+                  value={invite.identifier}
+                  onChange={(e) => handleIdentifierChange(invite.id, e.target.value)}
+                  className="flex-grow"
+                  aria-invalid={errors[invite.id] ? "true" : "false"}
+                  aria-describedby={errors[invite.id] ? `error-${invite.id}` : undefined}
+                />
+                <Button 
+                  onClick={() => copyInviteMessage(invite.identifier)} 
+                  variant="ghost" 
+                  className="flex-shrink-0"
+                  aria-label="Copy invite message"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
               {errors[invite.id] && (
-                <p className="text-sm text-red-500 w-full">{errors[invite.id]}</p>
+                <p id={`error-${invite.id}`} className="text-sm text-red-500">{errors[invite.id]}</p>
               )}
             </div>
           ))}

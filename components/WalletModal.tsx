@@ -1,63 +1,69 @@
-"use client"
+// components/WalletModal.tsx
 
-import React, { useState, useRef, useEffect } from 'react'
-import { usePrivy } from '@privy-io/react-auth'
-import { disconnectWeb3 } from "@lit-protocol/auth-browser"
-import { LogOut, X } from 'lucide-react'
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { usePrivy } from "@privy-io/react-auth";
+import { disconnectWeb3 } from "@lit-protocol/auth-browser";
+import { LogOut, X } from "lucide-react";
 
 interface WalletButtonProps {
-  className?: string
+  className?: string;
 }
 
 export const WalletButton: React.FC<WalletButtonProps> = ({ className }) => {
-  const { ready, authenticated, login, logout, user } = usePrivy()
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const router = useRouter(); // Add useRouter for redirection
+  const { ready, authenticated, login, logout, user } = usePrivy();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const userWalletAddress = user?.wallet?.address || user?.email?.address || ''
+  const userWalletAddress = user?.wallet?.address || user?.email?.address || "";
   const formattedAddress = userWalletAddress
     ? `${userWalletAddress.substring(0, 6)}...${userWalletAddress.substring(userWalletAddress.length - 4)}`
-    : ''
+    : "";
 
-  const disableButton = !ready
+  const disableButton = !ready;
 
   const handleClick = () => {
     if (authenticated) {
-      setIsDropdownOpen(!isDropdownOpen)
+      setIsDropdownOpen(!isDropdownOpen);
     } else {
-      login()
+      login();
     }
-  }
+  };
 
   const handleDisconnect = async () => {
     try {
       // Disconnect Web3 wallet session
-      await disconnectWeb3()
+      await disconnectWeb3();
 
       // Fully log out from Privy
-      await logout()
+      await logout();
 
       // Reset dropdown state after logout
-      setIsDropdownOpen(false)
+      setIsDropdownOpen(false);
 
-      // Optionally, clear other wallet-related states here if necessary
+      // Redirect to the home page
+      router.push("/");
+
     } catch (error) {
-      console.error("Error during disconnect:", error)
+      console.error("Error during disconnect:", error);
     }
-  }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false)
+        setIsDropdownOpen(false);
       }
-    }
+    };
 
-    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -68,13 +74,13 @@ export const WalletButton: React.FC<WalletButtonProps> = ({ className }) => {
         aria-haspopup="true"
         aria-expanded={isDropdownOpen}
       >
-        {authenticated ? "Logged In" : "Connect Wallet"}
+        {authenticated ? "Wallet Connected" : "Connect Wallet"}
       </button>
 
       {authenticated && isDropdownOpen && (
         <div
           className="absolute left-0 right-0 mt-2 md:left-auto md:right-0 min-w-max rounded-md shadow-lg bg-popover text-popover-foreground border border-border"
-          style={{ background: 'black' }}
+          style={{ background: "black" }}
         >
           <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
             <p className="px-4 py-2 text-sm">{formattedAddress}</p>
@@ -96,5 +102,5 @@ export const WalletButton: React.FC<WalletButtonProps> = ({ className }) => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
