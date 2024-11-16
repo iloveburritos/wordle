@@ -1,28 +1,29 @@
 'use client'
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { usePrivy } from '@privy-io/react-auth';
-import { Button } from '@/components/ui/button';
-import ErrorModal from '@/components/error-modal';
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { usePrivy } from '@privy-io/react-auth'
+import { Button } from '@/components/ui/button'
+import ErrorModal from '@/components/error-modal'
+import InviteModal from '@/components/invite-modal'
 
 export default function Home() {
-  const router = useRouter();
-  const { ready, authenticated } = usePrivy();
-  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const router = useRouter()
+  const { ready, authenticated } = usePrivy()
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false)
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 
   const handleAction = (action: string) => {
     if (!authenticated) {
-      setIsErrorModalOpen(true);
+      setIsErrorModalOpen(true)
     } else {
       if (action === 'play') {
-        router.push('/game');
+        router.push('/game')
       } else if (action === 'team') {
-        // Implement team creation logic here
-        console.log('Start a team');
+        setIsInviteModalOpen(true)
       }
     }
-  };
+  }
 
   return (
     <div className="grid grid-rows-[1fr_auto] min-h-[calc(100vh-88px)] p-8 pb-20 gap-16 sm:p-20">
@@ -44,6 +45,10 @@ export default function Home() {
         isOpen={isErrorModalOpen} 
         onClose={() => setIsErrorModalOpen(false)} 
       />
+      <InviteModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+      />
     </div>
-  );
+  )
 }
