@@ -75,7 +75,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] bg-black opacity-80">
         <DialogHeader>
           <DialogTitle>Invite to Play</DialogTitle>
         </DialogHeader>
@@ -98,9 +98,9 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[200px] p-0">
+              <PopoverContent className="w-[200px] p-0 bg-black">
                 <Command>
-                  <CommandInput placeholder="Search identifier type..." />
+                  
                   <CommandEmpty>No identifier type found.</CommandEmpty>
                   <CommandList>
                     <CommandGroup>
@@ -113,6 +113,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
                             setValue(selectedValue === value ? '' : selectedValue);
                             setOpen(false);
                           }}
+                           className="cursor-pointer hover:bg-accent hover:text-accent-foreground"
                         >
                           <Check
                             className={cn(
