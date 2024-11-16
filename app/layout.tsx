@@ -6,8 +6,8 @@ import Header from "@/components/Header";
 import { PrivyWrapper } from '@/components/PrivyWrapper';
 
 export const metadata: Metadata = {
-  title: "VVordle - On-chain Wordle",
-  description: "A Wordle clone built with Next.js and React",
+  title: "Wordl3",
+  description: "Share your wordl3 score without giving away any hints or clues",
 };
 
 export default function RootLayout({
