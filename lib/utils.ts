@@ -39,14 +39,18 @@ export async function resolveAddress(identifier: string): Promise<string> {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to resolve email to wallet address')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to resolve email to wallet address')
       }
 
-      const data = (await response.json()) as { walletAddress: string }
+      const data = await response.json()
+      if (!data.walletAddress) {
+        throw new Error('No wallet address returned')
+      }
       return data.walletAddress
     } catch (error) {
       console.error('Error resolving email to wallet address:', error)
-      throw new Error('Email resolution failed')
+      throw new Error(error instanceof Error ? error.message : 'Email resolution failed')
     }
   }
 
