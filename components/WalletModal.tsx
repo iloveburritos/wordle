@@ -75,12 +75,12 @@ export const WalletButton: React.FC<WalletButtonProps> = ({ className }) => {
         aria-expanded={isDropdownOpen}
         
       >
-        {authenticated ? "Logged In" : "Connect Wallet"}
+        {authenticated ? "Wallet Connected" : "Connect Wallet"}
       </button>
 
       {authenticated && isDropdownOpen && (
         <div
-          className="absolute left-0 right-0 mt-2 md:left-auto md:right-0 min-w-max rounded-md shadow-lg bg-popover text-popover-foreground border border-border"
+          className="fixed  mt-2 rounded-md shadow-lg bg-popover text-popover-foreground border border-border"
           style={{ background: 'black' }}
         >
           <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
