@@ -1,16 +1,24 @@
+// components/invite-modal.tsx
+
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Check, ChevronsUpDown, Mail, Globe, Phone, Wallet, Share2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
-const identifierTypes = [
+interface IdentifierType {
+  label: string
+  value: 'email' | 'ens' | 'phone' | 'wallet'
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+}
+
+const identifierTypes: IdentifierType[] = [
   { label: 'Email', value: 'email', icon: Mail },
   { label: 'ENS Domain', value: 'ens', icon: Globe },
   { label: 'Phone Number', value: 'phone', icon: Phone },
@@ -24,18 +32,21 @@ interface InviteModalProps {
 
 export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
   const [open, setOpen] = useState(false)
-  const [value, setValue] = useState('')
+  const [value, setValue] = useState<IdentifierType['value'] | ''>('')
   const [identifier, setIdentifier] = useState('')
   const [error, setError] = useState('')
 
+  // Debugging: Log component mounts and data availability
+  useEffect(() => {
+    console.log('Component mounted with identifierTypes:', identifierTypes)
+  }, [])
+
   const handleShare = () => {
-    // Implement share functionality here
     console.log(`Sharing invite for ${value}: ${identifier}`)
-    // For now, we'll just close the modal
     onClose()
   }
 
-  const validateIdentifier = (type: string, value: string) => {
+  const validateIdentifier = (type: IdentifierType['value'], value: string) => {
     setError('')
     switch (type) {
       case 'email':
@@ -59,6 +70,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
         }
         break
     }
+    console.log('Validation error:', error)
   }
 
   return (
@@ -81,7 +93,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
                   className="col-span-3 justify-between"
                 >
                   {value
-                    ? identifierTypes.find((type) => type.value === value)?.label
+                    ? identifierTypes.find((type) => type.value === value)?.label || "Select identifier type..."
                     : "Select identifier type..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -90,26 +102,30 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
                 <Command>
                   <CommandInput placeholder="Search identifier type..." />
                   <CommandEmpty>No identifier type found.</CommandEmpty>
-                  <CommandGroup>
-                    {identifierTypes.map((type) => (
-                      <CommandItem
-                        key={type.value}
-                        onSelect={(currentValue) => {
-                          setValue(currentValue === value ? "" : currentValue)
-                          setOpen(false)
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            value === type.value ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {React.createElement(type.icon, { className: "mr-2 h-4 w-4" })}
-                        {type.label}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
+                  <CommandList>
+                    <CommandGroup>
+                      {identifierTypes.map((type) => (
+                        <CommandItem
+                          key={type.value}
+                          value={type.value}
+                          onSelect={(currentValue) => {
+                            const selectedValue = currentValue as IdentifierType['value'];
+                            setValue(selectedValue === value ? '' : selectedValue);
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              value === type.value ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {React.createElement(type.icon, { className: "mr-2 h-4 w-4" })}
+                          {type.label}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
                 </Command>
               </PopoverContent>
             </Popover>
@@ -124,7 +140,9 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
               value={identifier}
               onChange={(e) => {
                 setIdentifier(e.target.value)
-                validateIdentifier(value, e.target.value)
+                if (value) {
+                  validateIdentifier(value, e.target.value)
+                }
               }}
               placeholder={`Enter ${value || 'identifier'}...`}
             />

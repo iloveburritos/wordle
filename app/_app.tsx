@@ -12,7 +12,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       <Head>
         <title>Stoner Cats</title>
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="On-chain Wordle" />
+        <meta property="og:title" content="On-Chain Wordle" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       
