@@ -1,8 +1,9 @@
 import { LitNodeClient } from "@lit-protocol/lit-node-client";
 import { ethers } from "ethers";
 import { LitNetwork } from "@lit-protocol/constants";
-import { AccessControlConditions } from "@lit-protocol/types";
+import { AccessControlConditions, EvmContractConditions } from "@lit-protocol/types";
 //import { decryptToString } from "@lit-protocol/encryption";
+import { encryptString } from "@lit-protocol/lit-node-client";
 import {
   LitAbility,
   LitAccessControlConditionResource,
@@ -85,6 +86,71 @@ export const genJWT = async (
       console.log("✅ Generated JWT");
       console.log(jwt);
       return jwt;
+    } catch (error) {
+      console.error(error);
+    } finally {
+      litNodeClient!.disconnect();
+    }
+  };
+
+  export const encryptStringWithContractConditions = async (
+    toEncryptString: string,
+  ) => {
+    let litNodeClient: LitNodeClient;
+  
+    try {
+      const evmContractConditions: EvmContractConditions = [
+          {
+            contractAddress: "0x7e1676B4A9dF0B27A70614B9A8058e289872071c",
+            functionName: "isAllowed",
+            functionParams: [":userAddress"],
+            functionAbi: {
+              type: "function",
+              stateMutability: "view",
+              outputs: [
+                {
+                  type: "bool",
+                  name: "",
+                  internalType: "bool",
+                },
+              ],
+              name: "isAllowed",
+              inputs: [
+                {
+                  type: "address",
+                  name: "wallet",
+                  internalType: "address",
+                },
+              ],
+            },
+            chain: "baseSepolia",
+            returnValueTest: {
+              key: "",
+              comparator: "=",
+              value: "true",
+            },
+          },
+        ];
+  
+      console.log("🔄 Connecting to Lit network...");
+      litNodeClient = new LitNodeClient({
+        litNetwork: LitNetwork.Cayenne,
+        debug: false,
+      });
+      await litNodeClient.connect();
+      console.log("✅ Connected to Lit network");
+  
+      console.log("🔄 Encrypting file...");
+      const { ciphertext, dataToEncryptHash } = await encryptString(
+        {
+          dataToEncrypt: toEncryptString,
+          evmContractConditions,
+        },
+        litNodeClient
+      );
+      console.log("✅ Encrypted Successfully");
+  
+      return { ciphertext, dataToEncryptHash };
     } catch (error) {
       console.error(error);
     } finally {
