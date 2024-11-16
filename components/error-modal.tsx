@@ -28,7 +28,7 @@ export default function ErrorModal({ isOpen, onClose }: ErrorModalProps) {
             className="absolute right-4 top-4" 
             onClick={onClose}
           >
-            <X className="h-4 w-4" />
+            
             <span className="sr-only">Close</span>
           </Button>
         </DialogHeader>

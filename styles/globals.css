@@ -12,7 +12,6 @@
 :root {
   --background: #000000;
   --text-color: #ffffff;
-  --button-bg: #ffffff;
   --button-text: #000000;
   --button-hover: #f0f0f0;
   --header-bg: rgba(0, 0, 0, 0.8);
@@ -98,7 +97,6 @@
 @media screen and (max-width: 991px) {
   h1 { @apply text-[3rem]; }
   h2 { @apply text-[2.5rem]; }
-  .button { @apply text-lg py-2; }
 }
 
 @media screen and (max-width: 767px) {

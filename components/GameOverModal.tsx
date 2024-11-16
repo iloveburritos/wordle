@@ -37,25 +37,17 @@ export default function GameOverModal({
 }: GameOverModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="bg-black opacity-80">
         <DialogHeader>
           <DialogTitle>Game Over!</DialogTitle>
           <DialogDescription>
             {message}
           </DialogDescription>
-          <Button 
-            variant="ghost" 
-            className="absolute right-4 top-4" 
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </Button>
         </DialogHeader>
         <pre>{grid}</pre>
         <DialogFooter className="sm:justify-start">
           <Button onClick={onShare}>Share</Button>
-          <Button onClick={onSeeResults} variant="outline">See Results</Button>
+          <Button onClick={onSeeResults} variant="outline">See Stats</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

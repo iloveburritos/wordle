@@ -3,6 +3,7 @@
 import React from 'react'
 import { LetterState } from '../lib/types'
 import styles from '../styles/Keyboard.module.css'
+import {Button} from './ui/button'
 
 interface KeyboardProps {
   letterStates: Record<string, LetterState>
@@ -22,7 +23,7 @@ export default function Keyboard({ letterStates, onKey }: KeyboardProps) {
         <div key={i} className={styles.row}>
           {i === 1 && <div className={styles.spacer}></div>}
           {row.map((key) => (
-            <button
+            <Button
               key={key}
               className={`${styles.key} ${key.length > 1 ? styles.big : ''} ${
                 styles[letterStates[key] || '']
@@ -44,7 +45,7 @@ export default function Keyboard({ letterStates, onKey }: KeyboardProps) {
                   ></path>
                 </svg>
               )}
-            </button>
+            </Button>
           ))}
           {i === 1 && <div className={styles.spacer}></div>}
         </div>
