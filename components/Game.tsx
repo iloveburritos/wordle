@@ -5,16 +5,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { getWordOfTheDay, allWords } from '../lib/words'
 import Keyboard from './Keyboard'
-import { LetterState } from '../lib/types'
+import { LetterState, icons } from '../lib/types'
 import styles from '../styles/Game.module.css'
 import GameOverModal from './GameOverModal'
-
-const icons = {
-  [LetterState.CORRECT]: '🟩',
-  [LetterState.PRESENT]: '🟨',
-  [LetterState.ABSENT]: '⬜',
-  [LetterState.INITIAL]: null
-}
 
 export default function Game() {
   const answer = useMemo(() => getWordOfTheDay(), [])
