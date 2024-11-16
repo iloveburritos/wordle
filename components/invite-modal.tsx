@@ -66,23 +66,27 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
   const validateIdentifier = (id: number, identifier: string) => {
     const errorMessages = { ...errors }
-
+  
     if (!identifier) {
       errorMessages[id] = 'Identifier cannot be empty'
-    } else if (!/^0x[a-fA-F0-9]{40}$/.test(identifier) && !identifier.endsWith('.eth')) {
-      errorMessages[id] = 'Enter a valid wallet address or ENS domain'
+    } else if (
+      !/^0x[a-fA-F0-9]{40}$/.test(identifier) && // Wallet
+      !identifier.endsWith('.eth') && // ENS
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier) // Email
+    ) {
+      errorMessages[id] = 'Enter a valid wallet address, ENS domain, or email'
     } else {
       delete errorMessages[id]
     }
-
+  
     setErrors(errorMessages)
   }
 
   const copyInviteMessage = (identifier: string) => {
-    const websiteUrl = process.env.NEXT_PUBLIC_WEBSITE_URL 
-    const message = `Join my private Wordle group by logging onto ${websiteUrl} using ${identifier}`
-    navigator.clipboard.writeText(message)
-  }
+    const websiteUrl = process.env.NEXT_PUBLIC_WEBSITE_URL;
+    const message = `Join my private Wordle group by logging onto ${websiteUrl} using ${identifier.includes('@') ? identifier : identifier}`;
+    navigator.clipboard.writeText(message);
+  };
 
   async function handleSendInvites() {
     if (Object.values(errors).some(error => error) || invites.some(invite => !invite.identifier)) {
@@ -95,44 +99,58 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
     try {
       const resolvedInvites = await Promise.all(
         invites.map(async (invite) => {
-          const resolvedAddress = await resolveAddress(invite.identifier);
-          return { ...invite, resolvedAddress };
+          try {
+            const resolvedAddress = await resolveAddress(invite.identifier);
+            return { ...invite, resolvedAddress, error: null };
+          } catch (error) {
+            return { ...invite, resolvedAddress: null, error: error instanceof Error ? error.message : 'Resolution failed' };
+          }
         })
       );
-  
-      // Filter out invalid or unresolved addresses
+
+      // Filter out invalid or unresolved addresses and collect errors
+      const errors = resolvedInvites
+        .filter(invite => invite.error)
+        .map(invite => `${invite.identifier}: ${invite.error}`);
+
       const addressesToSend = resolvedInvites
         .filter((invite) => invite.resolvedAddress)
-        .map((invite) => invite.resolvedAddress);
-  
+        .map((invite) => invite.resolvedAddress!);
+
       if (addressesToSend.length === 0) {
-        throw new Error("No valid addresses to send invites to.");
+        throw new Error("No valid addresses to send invites to.\n" + errors.join('\n'));
       }
-  
-      console.log("Resolved Addresses:", addressesToSend);
-  
-      // Call the minting API endpoint on the Express server
+
+      // Call the minting API endpoint with increased gas price
       const response = await fetch("http://localhost:3001/mint", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ walletAddresses: addressesToSend }),
+        body: JSON.stringify({ 
+          walletAddresses: addressesToSend,
+          // Add optional gas price multiplier if your backend supports it
+          gasMultiplier: 1.2 // Increase gas price by 20%
+        }),
       });
-  
+
       const data = await response.json();
-  
+
       if (response.ok) {
         console.log("NFTs minted successfully:", data.transactionHashes);
         alert("Invites sent and NFTs minted successfully!");
         setInviteSent(true);
       } else {
         console.error("Failed to mint NFTs:", data.error);
-        alert(`Error: ${data.error || "Something went wrong."}`);
+        if (data.error?.includes('replacement fee too low')) {
+          alert("Transaction failed due to network congestion. Please try again with a higher gas price.");
+        } else {
+          alert(`Error: ${data.error || "Something went wrong."}`);
+        }
       }
     } catch (error) {
       console.error("Error resolving addresses:", error)
-      alert("An error occurred while resolving addresses. Please try again.")
+      alert(error instanceof Error ? error.message : "An error occurred while resolving addresses. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -150,7 +168,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
             <div key={invite.id} className="grid gap-2">
               <div className="flex items-center gap-4">
                 <Input
-                  placeholder="Wallet / ENS"
+                  placeholder="Wallet / ENS / Email"
                   value={invite.identifier}
                   onChange={(e) => handleIdentifierChange(invite.id, e.target.value)}
                   className="flex-grow"

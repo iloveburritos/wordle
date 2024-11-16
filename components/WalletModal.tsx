@@ -52,6 +52,10 @@ export const WalletButton: React.FC<WalletButtonProps> = ({ className }) => {
     }
   };
 
+  const handleEmailLogin = async () => {
+    await login();
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
