@@ -8,6 +8,8 @@ import { GameResult, icons } from '../lib/types';
 import { SiweMessage } from 'siwe';
 import { useWallets } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
+import {fetchScoresForCurrentGame} from '../lib/utils';
+import { decryptStringWithContractConditions } from '@/lib/litUtils';
 
 // Define interface for ciphertext and dataToEncryptHash
 export interface EncryptedResult {
@@ -45,10 +47,46 @@ export default function GameOverModal({
   const { wallets } = useWallets();
   const userWallet = wallets[0];
 
-  const handleSeeStats = () => {
-    onSeeResults(); // Optional: keep if other logic is needed
-    router.push('/results');
+  const handleSeeStats = async () => {
+    onSeeResults();
+  
+    try {
+      const stats = await fetchScoresForCurrentGame();
+      console.log("Stats:", stats);
+  
+      const userSigner = await userWallet.getEthereumProvider();
+      const provider = new ethers.providers.Web3Provider(userSigner);
+      const signer = provider.getSigner();
+  
+      const decryptedResults = [];
+      for (const entry of stats.data.scoreAddeds) {
+        const { tokenId, encryptedScore, hashScore, user } = entry;
+        try {
+          const score = await decryptStringWithContractConditions(
+            encryptedScore,
+            hashScore,
+            signer,
+            "baseSepolia"
+          );
+          decryptedResults.push({ tokenId, score, user });
+        } catch (error) {
+          console.error(`Failed to decrypt score for tokenId ${tokenId}:`, error);
+          decryptedResults.push({ tokenId, score: null, user });
+        }
+      }
+  
+      console.log("Decrypted Results:", decryptedResults);
+  
+      // Navigate to the results page with decrypted results
+      const queryString = encodeURIComponent(JSON.stringify(decryptedResults));
+      router.push(`/results?stats=${queryString}`);
+    } catch (error) {
+      console.error("Error fetching or processing stats:", error);
+    }
   };
+  
+  
+  
 
   const handleShare = async () => {
     try {

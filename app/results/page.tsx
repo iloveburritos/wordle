@@ -3,31 +3,44 @@
 'use client';
 
 import React from 'react';
-import AIMChat from '@/components/AIMChat';
-import StatsDisplay from '@/components/StatsDisplay';
-import { EncryptedGameResult } from '@/lib/types';
+import { useSearchParams } from 'next/navigation';
+
+interface PlayerStat {
+  tokenId: string;
+  score: string | null;
+  user: string;
+}
 
 export default function Results() {
-  const encryptedResult: EncryptedGameResult = "your-encrypted-result-string-here";
-
-  // Example array of player stats
-  const playerStats = [
-    { player: 'alice.eth', totalGames: 15, totalWins: 10, bestScore: 2, averageScore: 3 },
-    { player: '0x123...abcd', totalGames: 12, totalWins: 8, bestScore: 3, averageScore: 4 },
-    { player: 'bob.eth', totalGames: 18, totalWins: 12, bestScore: 1, averageScore: 2 },
-  ];
+  const searchParams = useSearchParams();
+  const statsParam = searchParams.get('stats');
+  const playerStats: PlayerStat[] = statsParam ? JSON.parse(decodeURIComponent(statsParam)) : [];
 
   return (
     <div style={{ padding: '20px', textAlign: 'center' }}>
       <h1>Game Results</h1>
       <p>Here are your game statistics and achievements:</p>
-      
-      <div className="container mx-auto p-4">
-        <AIMChat chatName="Wordle Results" encryptedResult={encryptedResult} />
-      </div>
 
-      {/* Use StatsDisplay with dynamic player data */}
-      <StatsDisplay playerStats={playerStats} />
+      <table style={{ margin: '20px auto', borderCollapse: 'collapse', width: '80%' }}>
+        <thead>
+          <tr>
+            <th style={{ border: '1px solid black', padding: '8px' }}>Player</th>
+            <th style={{ border: '1px solid black', padding: '8px' }}>Token ID</th>
+            <th style={{ border: '1px solid black', padding: '8px' }}>Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {playerStats.map((stat, index) => (
+            <tr key={index}>
+              <td style={{ border: '1px solid black', padding: '8px' }}>{stat.user}</td>
+              <td style={{ border: '1px solid black', padding: '8px' }}>{stat.tokenId}</td>
+              <td style={{ border: '1px solid black', padding: '8px' }}>
+                {stat.score !== null ? stat.score : 'Failed to Decrypt'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <p style={{ marginTop: '40px' }}>Thank you for playing!</p>
     </div>
