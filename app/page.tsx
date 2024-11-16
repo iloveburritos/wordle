@@ -37,7 +37,7 @@ export default function Home() {
             Play Game
           </Button>
           <Button size="lg" onClick={() => handleAction('team')}>
-            Start a Team
+            Create a Group
           </Button>
         </div>
       </main>
