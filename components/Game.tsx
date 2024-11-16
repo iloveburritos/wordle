@@ -56,7 +56,8 @@ export default function Game() {
   }, [onKey]);
 
   // Function to handle sending result to API
-  const sendResultToAPI = async (encryptedResult: string, isSuccessful: boolean, score: number) => {
+  
+  /*const sendResultToAPI = async (encryptedResult: string, isSuccessful: boolean, score: number) => {
     try {
       const response = await fetch('/api/submit-result', {
         method: 'POST',
@@ -78,7 +79,7 @@ export default function Game() {
     } catch (error) {
       console.error('Error sending result:', error);
     }
-  };
+  };*/
 
   // Functions to handle tile filling, clearing, and row completion
   const fillTile = (letter: string) => {
@@ -175,7 +176,8 @@ export default function Game() {
 
           // Encrypt and send the game result to the API endpoint
           const encryptedResult = encryptGameResult(board);
-          await sendResultToAPI(encryptedResult, finalSuccess, currentRowIndex + 1);
+          console.log('Encrypted result:', encryptedResult);
+          //await sendResultToAPI(encryptedResult, finalSuccess, currentRowIndex + 1);
         }, 1600);
       } else if (currentRowIndex < board.length - 1) {
         setCurrentRowIndex((prevIndex) => prevIndex + 1);
