@@ -11,6 +11,7 @@
   "dependencies": {
     "@lit-protocol/auth-browser": "^6.11.1",
     "@privy-io/react-auth": "^1.94.2",
+    "@privy-io/server-auth": "^1.16.3",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-popover": "^1.1.2",
