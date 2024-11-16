@@ -3,7 +3,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Check, ChevronsUpDown, Mail, Globe, Phone, Wallet, Share2, Plus, Copy } from 'lucide-react'
+import { Check, ChevronsUpDown, Mail, Globe, Phone, Wallet, Share2, Plus, Copy, Loader2 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
@@ -34,11 +34,13 @@ interface InviteModalProps {
 export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
   const [invites, setInvites] = useState([{ id: 1, identifier: '' }])
   const [errors, setErrors] = useState<{ [key: number]: string }>({})
+  const [isLoading, setIsLoading] = useState(false)
   const [inviteSent, setInviteSent] = useState(false)
 
   const resetForm = () => {
     setInvites([{ id: 1, identifier: '' }])
     setErrors({})
+    setIsLoading(false)
     setInviteSent(false)
   }
 
@@ -76,7 +78,8 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
   }
 
   const copyInviteMessage = (identifier: string) => {
-    const message = `Join my private Wordle group. You can login to ${process.env.NEXT_PUBLIC_WEBSITE_URL} using your (${identifier})`
+    const websiteUrl = process.env.NEXT_PUBLIC_WEBSITE_URL 
+    const message = `Join my private Wordle group. You can login to ${websiteUrl} using ${identifier}`
     navigator.clipboard.writeText(message)
   }
 
@@ -85,6 +88,8 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
       alert("Please fill out all fields correctly before sending invites.")
       return
     }
+
+    setIsLoading(true)
 
     try {
       const resolvedInvites = await Promise.all(
@@ -107,6 +112,9 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
       setInviteSent(true)
     } catch (error) {
       console.error("Error resolving addresses:", error)
+      alert("An error occurred while resolving addresses. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -128,12 +136,14 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
                   className="flex-grow"
                   aria-invalid={errors[invite.id] ? "true" : "false"}
                   aria-describedby={errors[invite.id] ? `error-${invite.id}` : undefined}
+                  disabled={isLoading}
                 />
                 <Button 
                   onClick={() => copyInviteMessage(invite.identifier)} 
                   variant="ghost" 
                   className="flex-shrink-0"
                   aria-label="Copy invite message"
+                  disabled={isLoading}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -148,13 +158,18 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
             onClick={addInviteField}
             variant="outline"
             className="w-full mt-2 border-none"
-            disabled={!invites[invites.length - 1].identifier || !!errors[invites.length - 1]}
+            disabled={!invites[invites.length - 1].identifier || !!errors[invites.length - 1] || isLoading}
           >
             <Plus className="mr-2 h-4 w-4" /> Invite another player
           </Button>
         </div>
 
-        {inviteSent ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center mt-4">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <p>Creating group...</p>
+          </div>
+        ) : inviteSent ? (
           <p className="text-center mt-4">
             Hit the copy button to share a personal invite link
           </p>
@@ -164,7 +179,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
             className="w-full mt-4"
             disabled={Object.values(errors).some(error => error) || invites.some(invite => !invite.identifier)}
           >
-            <Share2 className="mr-2 h-4 w-4" /> Send Invites
+            <Share2 className="mr-2 h-4 w-4" /> Create a private group
           </Button>
         )}
       </DialogContent>
