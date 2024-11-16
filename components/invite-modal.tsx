@@ -71,26 +71,29 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] bg-black bg-opacity-80">
+      <DialogContent className="max-w-[90vw] sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px] bg-black bg-opacity-80">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Invite to Play</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           {invites.map((invite, index) => (
-            <div key={invite.id} className="grid grid-cols-5 items-center gap-4">
-              <Label htmlFor={`identifier-${invite.id}`} className="col-span-1 text-right">
+            <div key={invite.id} className="flex items-center gap-4">
+              <Label
+                htmlFor={`identifier-${invite.id}`}
+                className="text-right w-24 md:w-32 flex-shrink-0"
+              >
                 Wallet / ENS
               </Label>
               <Input
                 id={`identifier-${invite.id}`}
-                className="col-span-4"
+                className="flex-grow"
                 value={invite.identifier}
                 onChange={(e) => handleIdentifierChange(invite.id, e.target.value)}
                 placeholder="Enter wallet address or ENS domain..."
               />
               {errors[invite.id] && (
-                <p className="col-span-5 text-sm text-red-500">{errors[invite.id]}</p>
+                <p className="text-sm text-red-500 w-full">{errors[invite.id]}</p>
               )}
             </div>
           ))}
@@ -98,7 +101,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
           <Button
             onClick={addInviteField}
             variant="outline"
-            className="w-full mt-2"
+            className="w-full mt-2 border-none"
             disabled={!invites[invites.length - 1].identifier || !!errors[invites.length - 1]}
           >
             <Plus className="mr-2 h-4 w-4" /> Add Another Invite
