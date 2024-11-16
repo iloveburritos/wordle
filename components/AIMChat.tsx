@@ -1,28 +1,15 @@
+// AIMChat.tsx
+
 'use client'
 
 import React, { useState, useEffect } from 'react';
 import { EncryptedGameResult, GameResult, icons, LetterState } from '../lib/types';
+import { decryptGameResult } from '../lib/decryptGameResult';
 
 interface AIMChatProps {
   chatName: string;
   encryptedResult: EncryptedGameResult;
 }
-
-// Mock function to decrypt EncryptedGameResult
-const mockDecrypt = (encrypted: EncryptedGameResult): GameResult => {
-  const mockBoard = Array(6).fill(null).map(() => 
-    Array(5).fill(null).map(() => ({
-      letter: 'A',
-      state: LetterState.CORRECT
-    }))
-  );
-  return {
-    board: mockBoard,
-    encryptedString: encrypted,
-    isSuccessful: true,
-    score: 100
-  };
-};
 
 const renderGrid = (board: GameResult['board']): string => {
   return board
@@ -34,8 +21,17 @@ const AIMChat: React.FC<AIMChatProps> = ({ chatName, encryptedResult }) => {
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
 
   useEffect(() => {
-    // In a real scenario, you'd use an actual decryption function here
-    const decryptedResult = mockDecrypt(encryptedResult);
+    // Decrypt the result using the decryptGameResult function
+    const decryptedBoard = decryptGameResult(encryptedResult);
+
+    // Construct the GameResult object based on the decrypted board
+    const decryptedResult: GameResult = {
+      board: decryptedBoard,
+      encryptedString: encryptedResult,
+      isSuccessful: decryptedBoard.some(row => row.every(tile => tile.state === LetterState.CORRECT)),
+      score: decryptedBoard.filter(row => row.some(tile => tile.state !== LetterState.INITIAL)).length
+    };
+
     setGameResult(decryptedResult);
   }, [encryptedResult]);
 
@@ -74,16 +70,6 @@ const AIMChat: React.FC<AIMChatProps> = ({ chatName, encryptedResult }) => {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Chat input (disabled) */}
-      <div className="bg-gray-100 p-2">
-        <input 
-          type="text" 
-          className="w-full p-2 rounded border border-gray-300 bg-gray-200" 
-          placeholder="You can't type here..." 
-          disabled 
-        />
       </div>
     </div>
   );
