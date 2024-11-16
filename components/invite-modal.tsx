@@ -79,7 +79,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
   const copyInviteMessage = (identifier: string) => {
     const websiteUrl = process.env.NEXT_PUBLIC_WEBSITE_URL 
-    const message = `Join my private Wordle group. You can login to ${websiteUrl} using ${identifier}`
+    const message = `Join my private Wordle group by logging onto ${websiteUrl} using ${identifier}`
     navigator.clipboard.writeText(message)
   }
 
