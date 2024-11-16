@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 import { WordleABI } from "../public/contractABI.js"; // Adjust the path to match your project structure
 import dotenv from "dotenv";
 import cors from "cors"; // Import the CORS middleware
-dotenv.config();
+dotenv.config({ path: './.env.local' });
 
 const app = express();
 
