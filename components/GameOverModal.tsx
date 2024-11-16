@@ -46,7 +46,7 @@ export default function GameOverModal({
         </DialogHeader>
         <pre>{grid}</pre>
         <DialogFooter className="sm:justify-start">
-          <Button onClick={onShare}>Share</Button>
+          <Button onClick={onShare}>Copy Results</Button>
           <Button onClick={onSeeResults} variant="outline">See Stats</Button>
         </DialogFooter>
       </DialogContent>

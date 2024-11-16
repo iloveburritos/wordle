@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { getWordOfTheDay, allWords } from '../lib/words'
 import Keyboard from './Keyboard'
-import { LetterState } from '../lib/types'
+import { LetterState, GameBoard } from '../lib/types'
 import styles from '../styles/Game.module.css'
 import GameOverModal from './GameOverModal'
 
@@ -16,9 +16,9 @@ const icons = {
   [LetterState.INITIAL]: null
 }
 
-export default function Game() {
+export default function Component() {
   const answer = useMemo(() => getWordOfTheDay(), [])
-  const [board, setBoard] = useState(
+  const [board, setBoard] = useState<GameBoard>(
     Array.from({ length: 6 }, () =>
       Array.from({ length: 5 }, () => ({
         letter: '',
@@ -221,7 +221,7 @@ export default function Game() {
               <div
                 key={tileIndex}
                 className={`${styles.tile} ${tile.letter && styles.filled} ${
-                  tile.state && styles.revealed
+                  tile.state !== LetterState.INITIAL && styles.revealed
                 }`}
               >
                 <div
