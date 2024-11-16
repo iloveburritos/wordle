@@ -9,6 +9,12 @@ import { SiweMessage } from 'siwe';
 import { useWallets } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 
+// Define interface for ciphertext and dataToEncryptHash
+export interface EncryptedResult {
+  ciphertext: string;
+  dataToEncryptHash: string;
+}
+
 interface GameOverModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -58,6 +64,8 @@ export default function GameOverModal({
       const { token } = await response.json(); // Extract the JWT token
       const { nonce } = JSON.parse(atob(token.split('.')[1])); // Decode the nonce from the JWT payload
   
+      console.log("Encrypted Info:", gameResult.encryptedString);
+      
       console.log("Generated token:", token);
       console.log("Decoded nonce:", nonce);
   
@@ -94,7 +102,7 @@ export default function GameOverModal({
           message, // SIWE message
           signature,
           token, // JWT token
-          score: 10, // Include any other relevant data, e.g., the game score
+          score: gameResult.encryptedString, // Include any other relevant data, e.g., the game score
         }),
       });
   

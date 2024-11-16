@@ -69,6 +69,46 @@ app.post("/mint", async (req, res) => {
   }
 });
 
+async function runGraphQueryForWallet(walletAddress) {
+  const url = 'https://api.studio.thegraph.com/query/94961/worldv4/version/latest';
+  const query = `
+    query Subgraphs($walletAddress: String!) {
+      newUsers(where: { userAddress: $walletAddress }) {
+        id
+        tokenId
+        userAddress
+      }
+    }
+  `;
+
+  console.log(`Running GraphQL query for wallet ${walletAddress}`);
+  const variables = {
+    walletAddress: walletAddress.toLowerCase(), // Ensure case-insensitivity
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: query,
+      variables: variables,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`GraphQL query failed with status ${response.status}`);
+  }
+
+  const result = await response.json();
+  if (result.errors) {
+    throw new Error(`GraphQL query errors: ${JSON.stringify(result.errors)}`);
+  }
+
+  return result.data.newUsers;
+}
+
 // GET endpoint to generate a nonce
 app.get("/generate-nonce", (req, res) => {
   try {
@@ -93,6 +133,8 @@ app.get("/generate-nonce", (req, res) => {
 app.post("/send-score", async (req, res) => {
   try {
     const { message, signature, token, score } = req.body;
+
+    console.log("SCORE: ", score);
 
     if (!message || !signature || !token || score === undefined) {
       return res.status(400).json({ error: "Missing required parameters" });
@@ -161,6 +203,30 @@ app.post("/send-score", async (req, res) => {
       console.error("Wallet does not hold any tokens.");
       return res.status(403).json({ error: "Wallet does not hold the required tokens" });
     }
+
+    // RUN THE GRAPH QUERY HERE
+    let tokenId;
+    try {
+      const graphResult = await runGraphQueryForWallet(walletAddress);
+      console.log(`GraphQL query result for wallet ${walletAddress}:`, graphResult);
+      tokenId = graphResult[0].tokenId;
+      console.log(`Token ID for wallet ${walletAddress}: ${tokenId}`);
+    } catch (error) {
+      console.error("Error running GraphQL query:", error.message);
+      return res.status(500).json({ error: "Failed to fetch data from The Graph" });
+    }
+
+    // create ethers wallet using process.env.CONTRACT_OWNER_PRIVATE_KEY
+    const privateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
+    const wallet = new ethers.Wallet(privateKey, provider);
+
+    // connect to the contract using the wallet
+    const contractWithSigner = contract.connect(wallet);
+
+    // call the setScore function on the contract
+    const tx = await contractWithSigner.setUserScore(tokenId, score.ciphertext, score.dataToEncryptHash);
+    console.log(`Transaction sent for wallet ${walletAddress}: ${tx.hash}`);
+    await tx.wait();
 
     // Return success response if everything is verified
     return res.status(200).json({

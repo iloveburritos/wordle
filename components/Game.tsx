@@ -10,6 +10,12 @@ import { encryptGameResult } from '../lib/encryptGameResult'; // Assuming you ha
 import styles from '../styles/Game.module.css';
 import GameOverModal from './GameOverModal';
 
+// Define interface for ciphertext and dataToEncryptHash
+export interface EncryptedResult {
+  ciphertext: string;
+  dataToEncryptHash: string;
+}
+
 export default function Game() {
   const answer = useMemo(() => getWordOfTheDay(), []);
   const [board, setBoard] = useState<GameBoard>(
@@ -30,6 +36,7 @@ export default function Game() {
   const [allowInput, setAllowInput] = useState(true);
   const [isGameOverModalOpen, setIsGameOverModalOpen] = useState(false);
   const [gameOverMessage, setGameOverMessage] = useState('');
+  const [encryptedResult, setEncryptedResult] = useState<EncryptedResult | null>(null);
   
   // Construct the current row based on the current row index
   const currentRow = useMemo(() => board[currentRowIndex], [board, currentRowIndex]);
@@ -175,8 +182,9 @@ export default function Game() {
           setIsGameOverModalOpen(true);
 
           // Encrypt and send the game result to the API endpoint
-          const encryptedResult = encryptGameResult(board);
+          const encryptedResult = await encryptGameResult(board);
           console.log('Encrypted result:', encryptedResult);
+          setEncryptedResult(encryptedResult);
           //await sendResultToAPI(encryptedResult, finalSuccess, currentRowIndex + 1);
         }, 1600);
       } else if (currentRowIndex < board.length - 1) {
@@ -250,19 +258,21 @@ export default function Game() {
         ))}
       </div>
       <Keyboard onKey={onKey} letterStates={letterStates} />
-      <GameOverModal
-        isOpen={isGameOverModalOpen}
-        onClose={() => setIsGameOverModalOpen(false)}
-        onShare={handleShare}
-        onSeeResults={handleSeeResults}
-        gameResult={{
-          board,
-          encryptedString: '', // Assuming encryption logic is handled elsewhere
-          isSuccessful: success,
-          score: currentRowIndex + 1,
-        }}
-        message={gameOverMessage}
-      />
+      {encryptedResult && (
+        <GameOverModal
+          isOpen={isGameOverModalOpen}
+          onClose={() => setIsGameOverModalOpen(false)}
+          onShare={handleShare}
+          onSeeResults={handleSeeResults}
+          gameResult={{
+            board,
+            encryptedString: encryptedResult, // Assuming encryption logic is handled elsewhere
+            isSuccessful: success,
+            score: currentRowIndex + 1,
+          }}
+          message={gameOverMessage}
+        />
+      )}
     </div>
   );
 }
