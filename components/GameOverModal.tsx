@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react';
-import { X } from 'lucide-react';
+import { useRouter } from 'next/navigation'; // Import useRouter for navigation
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { GameResult, icons } from '../lib/types';
@@ -11,7 +11,7 @@ interface GameOverModalProps {
   onClose: () => void;
   onShare: () => void;
   onSeeResults: () => void;
-  gameResult: GameResult; // Using GameResult type for encapsulated game details
+  gameResult: GameResult;
   message: string;
 }
 
@@ -30,8 +30,15 @@ export default function GameOverModal({
   gameResult,
   message
 }: GameOverModalProps) {
+  const router = useRouter(); // Initialize router
+
   const { score, board } = gameResult;
   const grid = renderGrid(board);
+
+  const handleSeeStats = () => {
+    onSeeResults(); // Optional: keep if other logic is needed
+    router.push('/results');
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -45,7 +52,7 @@ export default function GameOverModal({
         <pre>{grid}</pre>
         <DialogFooter className="sm:justify-start">
           <Button onClick={onShare}>Share</Button>
-          <Button onClick={onSeeResults} variant="outline">See Stats</Button>
+          <Button onClick={handleSeeStats} variant="outline">See Stats</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
