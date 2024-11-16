@@ -1,6 +1,5 @@
 // lib/words.tsx
 
-
 const defaultMessage = ' Using word of the day instead.';
 
 export function getWordOfTheDay() {

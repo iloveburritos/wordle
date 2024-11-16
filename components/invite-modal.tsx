@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { resolveAddress } from "@/lib/utils"
 
 interface IdentifierType {
   label: string
@@ -63,10 +64,38 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
     setErrors(errorMessages)
   }
 
-  const handleSendInvites = () => {
-    console.log(invites)  // Placeholder for invite processing logic
-    resetForm()
-    onClose()  // Close the modal after sending invites
+  async function handleSendInvites() {
+    try {
+      // Resolve all identifiers to wallet addresses
+      const resolvedInvites = await Promise.all(
+        invites.map(async (invite) => {
+          const resolvedAddress = await resolveAddress(invite.identifier)
+          return { ...invite, resolvedAddress }
+        })
+      )
+  
+      // Filter out unresolved or invalid addresses (optional, depending on your design)
+      const addressesToSend = resolvedInvites
+        .filter((invite) => invite.resolvedAddress)
+        .map((invite) => invite.resolvedAddress)
+  
+      if (addressesToSend.length === 0) {
+        throw new Error("No valid addresses to send invites to.")
+      }
+  
+      // Log the resolved addresses or pass them to your smart contract function
+      console.log("Resolved Addresses:", addressesToSend)
+  
+      // Call your smart contract function here with addressesToSend
+      // await contract.sendInvites(addressesToSend)
+  
+      // Reset form and close modal on success
+      resetForm()
+      onClose()
+    } catch (error) {
+      console.error("Error resolving addresses:", error)
+      // Show an error message to the user if needed
+    }
   }
 
   return (
