@@ -3,7 +3,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { ethers } from "ethers"
-import provider from "@/lib/provider" 
+import { ethProvider} from "@/lib/provider" 
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -11,7 +11,7 @@ export function cn(...inputs: ClassValue[]) {
 export async function resolveAddress(identifier: string): Promise<string> {
   if (identifier.endsWith(".eth")) {
     try {
-      const resolvedAddress = await provider.resolveName(identifier)
+      const resolvedAddress = await ethProvider.resolveName(identifier)
       if (!resolvedAddress) {
         throw new Error(`Could not resolve ${identifier}`)
       }
