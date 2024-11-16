@@ -3,6 +3,10 @@ import { ethers } from "ethers";
 import { WordleABI } from "../public/contractABI.js"; // Adjust the path to match your project structure
 import dotenv from "dotenv";
 import cors from "cors"; // Import the CORS middleware
+import { customAlphabet } from "nanoid"; // Use customAlphabet to specify characters
+import jwt from "jsonwebtoken"; // Import jsonwebtoken library
+import { SiweMessage } from "siwe"; // Import SIWE library
+
 dotenv.config({ path: './.env.local' });
 
 const app = express();
@@ -26,10 +30,8 @@ app.post("/mint", async (req, res) => {
       return res.status(400).json({ error: "Invalid request body. Provide an array of wallet addresses." });
     }
 
-    // Log incoming wallet addresses
     console.log("Wallet Addresses:", walletAddresses);
 
-    // Load environment variables
     const privateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
     const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
     const networkUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
@@ -38,25 +40,21 @@ app.post("/mint", async (req, res) => {
       throw new Error("Missing required environment variables.");
     }
 
-    // Connect to Ethereum network
     const provider = new ethers.providers.JsonRpcProvider(networkUrl);
     const wallet = new ethers.Wallet(privateKey, provider);
     const contract = new ethers.Contract(contractAddress, WordleABI, wallet);
 
     console.log("Connected to provider and contract");
 
-    // Mint NFTs for each wallet address
     const mintPromises = walletAddresses.map(async (address) => {
-      const tx = await contract.safeMint(address); // safeMint is the minting function in your smart contract
+      const tx = await contract.safeMint(address);
       console.log(`Transaction sent for ${address}: ${tx.hash}`);
-      await tx.wait(); // Wait for the transaction to be mined
-      return tx.hash; // Return transaction hash
+      await tx.wait();
+      return tx.hash;
     });
 
-    // Wait for all transactions to complete
     const txHashes = await Promise.all(mintPromises);
 
-    // Respond with success and transaction hashes
     return res.status(200).json({
       success: true,
       message: "NFTs minted successfully.",
@@ -64,6 +62,113 @@ app.post("/mint", async (req, res) => {
     });
   } catch (error) {
     console.error("Minting error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "An unexpected error occurred.",
+    });
+  }
+});
+
+// GET endpoint to generate a nonce
+app.get("/generate-nonce", (req, res) => {
+  try {
+    const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 12);
+    const nonce = nanoid();
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+      return res.status(500).json({ error: "JWT_SECRET is not defined" });
+    }
+
+    const token = jwt.sign({ nonce }, secret, { expiresIn: "10m" });
+
+    res.status(200).json({ token });
+  } catch (error) {
+    console.error("Error generating nonce:", error);
+    res.status(500).json({ error: "Failed to generate nonce" });
+  }
+});
+
+// POST endpoint to verify SIWE message and JWT
+app.post("/send-score", async (req, res) => {
+  try {
+    const { message, signature, token, score } = req.body;
+
+    if (!message || !signature || !token || score === undefined) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    // Verify the JWT
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error("JWT_SECRET is not defined");
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, secret);
+    } catch (err) {
+      console.error("JWT verification failed:", err);
+      return res.status(401).json({ error: "Invalid JWT" });
+    }
+
+    const { nonce } = decoded; // Extract the nonce from the JWT
+
+    // Parse the SIWE message string into an object
+    const siweMessage = new SiweMessage(message);
+    console.log("Parsed SIWE message:", siweMessage);
+
+    // Verify that the nonce in the SIWE message matches the nonce from the JWT
+    if (siweMessage.nonce !== nonce) {
+      console.error("Nonce mismatch. SIWE message nonce:", siweMessage.nonce, "JWT nonce:", nonce);
+      return res.status(400).json({ error: "Nonce mismatch" });
+    }
+
+    // Verify the SIWE signature
+    const verification = await siweMessage.verify({ signature });
+    console.log("SIWE verification:", verification);
+
+    if (!verification) {
+      return res.status(401).json({ error: "Invalid SIWE signature" });
+    }
+
+    console.log(`Score received: ${score}`);
+
+    // Extract the wallet address from the SIWE message
+    const walletAddress = siweMessage.address;
+    const baseRpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
+    const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+
+    if (!baseRpcUrl || !contractAddress) {
+      throw new Error("Missing required environment variables for contract interaction.");
+    }
+
+    // Interact with the smart contract to check balance
+    const provider = new ethers.providers.JsonRpcProvider(baseRpcUrl);
+    const contract = new ethers.Contract(contractAddress, WordleABI, provider);
+
+    let balance;
+    try {
+      balance = await contract.balanceOf(walletAddress);
+      console.log(`Balance for wallet ${walletAddress}: ${balance.toString()}`);
+    } catch (err) {
+      console.error("Error fetching balance from contract:", err.message);
+      return res.status(500).json({ error: "Failed to check wallet balance" });
+    }
+
+    // Verify that the balance is greater than 0
+    if (balance.isZero()) {
+      console.error("Wallet does not hold any tokens.");
+      return res.status(403).json({ error: "Wallet does not hold the required tokens" });
+    }
+
+    // Return success response if everything is verified
+    return res.status(200).json({
+      success: true,
+      message: "Score and signature verified successfully",
+    });
+  } catch (error) {
+    console.error("Error verifying score:", error);
     return res.status(500).json({
       success: false,
       error: error.message || "An unexpected error occurred.",
