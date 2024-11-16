@@ -105,3 +105,28 @@
   h3 { @apply text-[1.75rem]; }
   h4 { @apply text-[1.5rem]; }
 }
+
+.stats-grid {
+  grid-template-columns: repeat(5, 1fr);
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.stats-grid > div {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.stats-grid > div:nth-child(-n+5) { /* Header row styling */
+  background-color: #f9f9f9;
+}
+
+.stats-grid > div:nth-last-child(-n+5) { /* Remove bottom border for last row */
+  border-bottom: none;
+}
+
+.stats-grid div:nth-child(5n) {
+  /* Optional: center the last column */
+  text-align: center;
+}
