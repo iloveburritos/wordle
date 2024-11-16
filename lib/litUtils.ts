@@ -1,9 +1,7 @@
-import { LitNodeClient } from "@lit-protocol/lit-node-client";
+import { LitNodeClient, encryptString } from "@lit-protocol/lit-node-client";
 import { ethers } from "ethers";
 import { LitNetwork } from "@lit-protocol/constants";
 import { AccessControlConditions, EvmContractConditions } from "@lit-protocol/types";
-//import { decryptToString } from "@lit-protocol/encryption";
-import { encryptString } from "@lit-protocol/lit-node-client";
 import {
   LitAbility,
   LitAccessControlConditionResource,

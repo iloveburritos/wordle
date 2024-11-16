@@ -15,7 +15,6 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         <meta property="og:title" content="On-Chain Wordle" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      
         <Component {...pageProps} />
     </PrivyWrapper>
   );

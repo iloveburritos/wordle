@@ -1,5 +1,11 @@
 // lib/types.tsx
 
+// Define interface for ciphertext and dataToEncryptHash
+export interface EncryptedResult {
+  ciphertext: string;
+  dataToEncryptHash: string;
+}
+
 export const enum LetterState {
     INITIAL = 0,
     CORRECT = 'correct',
@@ -20,18 +26,11 @@ export const enum LetterState {
   
   export type GameBoard = GameTile[][]; // 6 rows of 5 tiles each
   
-  export type EncryptedGameResult = string; // Represents the 30-character encrypted string
+  export type EncryptedGameResult = EncryptedResult; // Represents the 30-character encrypted string
   
   export interface GameResult {
     board: GameBoard;
     encryptedString: EncryptedGameResult;
     isSuccessful: boolean;
     score: number;
-  }
-
-  declare namespace NodeJS {
-    interface ProcessEnv {
-      PRIVY_APP_ID: string
-      PRIVY_APP_SECRET: string
-    }
   }
