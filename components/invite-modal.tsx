@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { resolveAddress } from "@/lib/utils"
 
+
 interface IdentifierType {
   label: string
   value: 'email' | 'ens' | 'phone' | 'wallet'
@@ -79,34 +80,55 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
   }
 
   async function handleSendInvites() {
-    if (Object.values(errors).some(error => error) || invites.some(invite => !invite.identifier)) {
-      alert("Please fill out all fields correctly before sending invites.")
-      return
+    if (Object.values(errors).some((error) => error) || invites.some((invite) => !invite.identifier)) {
+      alert("Please fill out all fields correctly before sending invites.");
+      return;
     }
-
+  
     try {
+      // Resolve identifiers to wallet addresses
       const resolvedInvites = await Promise.all(
         invites.map(async (invite) => {
-          const resolvedAddress = await resolveAddress(invite.identifier)
-          return { ...invite, resolvedAddress }
+          const resolvedAddress = await resolveAddress(invite.identifier);
+          return { ...invite, resolvedAddress };
         })
-      )
-
+      );
+  
+      // Filter out invalid or unresolved addresses
       const addressesToSend = resolvedInvites
         .filter((invite) => invite.resolvedAddress)
-        .map((invite) => invite.resolvedAddress)
-
+        .map((invite) => invite.resolvedAddress);
+  
       if (addressesToSend.length === 0) {
-        throw new Error("No valid addresses to send invites to.")
+        throw new Error("No valid addresses to send invites to.");
       }
-
-      console.log("Resolved Addresses:", addressesToSend)
-
-      setInviteSent(true)
+  
+      console.log("Resolved Addresses:", addressesToSend);
+  
+      // Call the minting API endpoint on the Express server
+      const response = await fetch("http://localhost:3001/mint", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ walletAddresses: addressesToSend }),
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        console.log("NFTs minted successfully:", data.transactionHashes);
+        alert("Invites sent and NFTs minted successfully!");
+        setInviteSent(true);
+      } else {
+        console.error("Failed to mint NFTs:", data.error);
+        alert(`Error: ${data.error || "Something went wrong."}`);
+      }
     } catch (error) {
-      console.error("Error resolving addresses:", error)
+      console.error("Error resolving addresses or sending invites:", error);
+      alert("An unexpected error occurred. Please try again later.");
     }
-  }
+  }  
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
