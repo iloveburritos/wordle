@@ -4,7 +4,7 @@ import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { ethers } from 'ethers'
 import { ethProvider } from '@/lib/provider'
-import { WordleABI } from "../public/contractABI.js"; // Adjust the path to match your project structure
+import { WordleABI } from "../public/contractABI.mjs"; // Adjust the path to match your project structure
 
 // Combines class names
 export function cn(...inputs: ClassValue[]): string {
