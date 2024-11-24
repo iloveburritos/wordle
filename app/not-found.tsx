@@ -20,7 +20,7 @@ export default function NotFound() {
             ))}
           </div>
           <p className="text-center mb-8">
-            Oops! It looks like the word you're looking for doesn't exist in our dictionary.
+            Oops! It looks like the word you&apos;re looking for doesn&apos;t exist in our dictionary.
           </p>
           <div className="flex justify-center">
             <Link href="/" className="button">

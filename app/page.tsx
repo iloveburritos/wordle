@@ -9,7 +9,7 @@ import InviteModal from '@/components/invite-modal'
 
 export default function Home() {
   const router = useRouter()
-  const { ready, authenticated } = usePrivy()
+  const { authenticated } = usePrivy()
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 
@@ -30,7 +30,7 @@ export default function Home() {
       <main className="flex flex-col gap-8 items-center sm:items-start text-center sm:text-left">
         <h1 className="text-4xl font-bold">Welcome to the on-chain Wordl3!</h1>
         <p className="text-sm sm:text-base">
-          Share your score in a group chat, without the risk of giving away any hints or clues. Guaranteed way to know you're the best. Built with Next and for Ethereum. 
+          Share your score in a group chat, without the risk of giving away any hints or clues. Guaranteed way to know you&apos;re the best. Built with Next and for Ethereum. 
         </p>
         <div className="flex gap-4">
           <Button size="lg" onClick={() => handleAction('play')}>
