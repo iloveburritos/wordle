@@ -1,6 +1,6 @@
 import express from "express";
 import { ethers } from "ethers";
-import { WordleABI } from "../public/contractABI.mjs"; // Adjust the path to match your project structure
+import { WordleABI } from "../public/contractABI.js"; // Adjust the path to match your project structure
 import dotenv from "dotenv";
 import cors from "cors"; // Import the CORS middleware
 import { customAlphabet } from "nanoid"; // Use customAlphabet to specify characters
@@ -23,99 +23,48 @@ app.use(express.json()); // Middleware to parse JSON request bodies
 // POST endpoint to mint NFTs
 app.post("/mint", async (req, res) => {
   try {
-    console.log("Received mint request");
+    // Extract wallet addresses from the request body
     const { walletAddresses } = req.body;
 
     if (!walletAddresses || !Array.isArray(walletAddresses)) {
-      console.error("Invalid request body:", req.body);
-      return res.status(400).json({ error: "Invalid request body" });
+      return res.status(400).json({ error: "Invalid request body. Provide an array of wallet addresses." });
     }
 
-    console.log("Processing wallet addresses:", walletAddresses);
+    console.log("Wallet Addresses:", walletAddresses);
 
-    const provider = new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_BASE_RPC_URL);
-    const wallet = new ethers.Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY, provider);
-    const contract = new ethers.Contract(process.env.NEXT_PUBLIC_CONTRACT_ADDRESS, WordleABI, wallet);
+    const privateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
+    const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+    const networkUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
 
-    const results = [];
-    
-    for (const address of walletAddresses) {
-      try {
-        console.log(`Processing address: ${address}`);
-        
-        // Validate address format
-        if (!ethers.utils.isAddress(address)) {
-          results.push({
-            address,
-            status: 'error',
-            error: 'Invalid address format'
-          });
-          continue;
-        }
-
-        // Check if address already has an NFT
-        const balance = await contract.balanceOf(address);
-        console.log(`Balance for ${address}: ${balance.toString()}`);
-        
-        if (balance.gt(0)) {
-          console.log(`Address ${address} already has an NFT`);
-          results.push({
-            address,
-            status: 'skipped',
-            message: 'Address already has an NFT'
-          });
-          continue;
-        }
-
-        // Get the current nonce and gas estimates
-        const nonce = await wallet.getTransactionCount();
-        console.log(`Current nonce: ${nonce}`);
-        
-        const gasEstimate = await contract.estimateGas.safeMint(address);
-        const gasPrice = await provider.getGasPrice();
-        
-        const gasLimit = gasEstimate.mul(120).div(100);
-        const adjustedGasPrice = gasPrice.mul(120).div(100);
-
-        console.log(`Minting NFT to ${address} with gas limit ${gasLimit} and price ${adjustedGasPrice}`);
-
-        const tx = await contract.safeMint(address, {
-          nonce,
-          gasLimit,
-          gasPrice: adjustedGasPrice
-        });
-
-        console.log(`Transaction sent: ${tx.hash}`);
-        const receipt = await tx.wait();
-        console.log(`Transaction confirmed: ${receipt.transactionHash}`);
-        
-        results.push({
-          address,
-          status: 'success',
-          txHash: tx.hash
-        });
-
-      } catch (error) {
-        console.error(`Error processing address ${address}:`, error);
-        results.push({
-          address,
-          status: 'error',
-          error: error.message || 'Unknown error occurred'
-        });
-      }
+    if (!privateKey || !contractAddress || !networkUrl) {
+      throw new Error("Missing required environment variables.");
     }
 
-    console.log("Final results:", results);
-    return res.status(200).json({
-      success: true,
-      results
+    const provider = new ethers.providers.JsonRpcProvider(networkUrl);
+    const wallet = new ethers.Wallet(privateKey, provider);
+    const contract = new ethers.Contract(contractAddress, WordleABI, wallet);
+
+    console.log("Connected to provider and contract");
+
+    const mintPromises = walletAddresses.map(async (address) => {
+      const tx = await contract.safeMint(address);
+      console.log(`Transaction sent for ${address}: ${tx.hash}`);
+      await tx.wait();
+      return tx.hash;
     });
 
+    const txHashes = await Promise.all(mintPromises);
+
+    return res.status(200).json({
+      success: true,
+      message: "NFTs minted successfully.",
+      transactionHashes: txHashes,
+    });
   } catch (error) {
-    console.error("Global minting error:", error);
+    console.error("Minting error:", error);
     return res.status(500).json({
       success: false,
-      error: error.message || "An unexpected error occurred"
+      error: error.message || "An unexpected error occurred.",
     });
   }
 });
