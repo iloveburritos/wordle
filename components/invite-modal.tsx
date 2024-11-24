@@ -97,64 +97,98 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
     setIsLoading(true)
 
     try {
+      console.log("Starting invite process...");
+      
+      // Resolve addresses with detailed logging
       const resolvedInvites = await Promise.all(
         invites.map(async (invite) => {
           try {
+            console.log(`Resolving address for: ${invite.identifier}`);
             const resolvedAddress = await resolveAddress(invite.identifier);
+            console.log(`Successfully resolved ${invite.identifier} to ${resolvedAddress}`);
             return { ...invite, resolvedAddress, error: null };
           } catch (error) {
-            return { ...invite, resolvedAddress: null, error: error instanceof Error ? error.message : 'Resolution failed' };
+            console.error(`Failed to resolve ${invite.identifier}:`, error);
+            return { 
+              ...invite, 
+              resolvedAddress: null, 
+              error: error instanceof Error ? error.message : 'Resolution failed' 
+            };
           }
         })
       );
 
-      // Filter out invalid or unresolved addresses and collect errors
-      const errors = resolvedInvites
+      console.log("Resolved invites:", resolvedInvites);
+
+      const resolutionErrors = resolvedInvites
         .filter(invite => invite.error)
         .map(invite => `${invite.identifier}: ${invite.error}`);
 
       const addressesToSend = resolvedInvites
-        .filter((invite) => invite.resolvedAddress)
-        .map((invite) => invite.resolvedAddress!);
+        .filter((invite): invite is (typeof invite & { resolvedAddress: string }) => 
+          invite.resolvedAddress !== null && invite.resolvedAddress !== undefined
+        )
+        .map((invite) => invite.resolvedAddress);
+
+      console.log("Addresses to send:", addressesToSend);
+      console.log("Resolution errors:", resolutionErrors);
 
       if (addressesToSend.length === 0) {
-        throw new Error("No valid addresses to send invites to.\n" + errors.join('\n'));
+        throw new Error("No valid addresses to send invites to.\n" + resolutionErrors.join('\n'));
       }
 
-      // Call the minting API endpoint with increased gas price
-      const response = await fetch("http://localhost:3001/mint", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          walletAddresses: addressesToSend,
-          // Add optional gas price multiplier if your backend supports it
-          gasMultiplier: 1.2 // Increase gas price by 20%
-        }),
-      });
+      try {
+        console.log("Sending mint request to server...");
+        const response = await fetch("http://localhost:3001/mint", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ walletAddresses: addressesToSend }),
+        });
 
-      const data = await response.json();
+        console.log("Received response from server");
+        const data = await response.json();
+        console.log("Parsed response data:", data);
 
-      if (response.ok) {
-        console.log("NFTs minted successfully:", data.transactionHashes);
-        alert("Invites sent and NFTs minted successfully!");
-        setInviteSent(true);
-      } else {
-        console.error("Failed to mint NFTs:", data.error);
-        if (data.error?.includes('replacement fee too low')) {
-          alert("Transaction failed due to network congestion. Please try again with a higher gas price.");
-        } else {
-          alert(`Error: ${data.error || "Something went wrong."}`);
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to mint NFTs");
         }
+
+        // Process results with error handling
+        const results = data.results || [];
+        const successfulMints = results.filter((r: { status: string }) => r.status === 'success').length;
+        const skippedMints = results.filter((r: { status: string }) => r.status === 'skipped').length;
+        const failedMints = results.filter((r: { status: string }) => r.status === 'error').length;
+
+        let message = `Invites processed:\n`;
+        message += `✅ ${successfulMints} successful\n`;
+        if (skippedMints > 0) message += `⏭️ ${skippedMints} already invited\n`;
+        if (failedMints > 0) {
+          message += `❌ ${failedMints} failed\n`;
+          // Add detailed error messages for failed mints
+          const failedDetails = results
+            .filter((r: { status: string; address: string; error: string }) => r.status === 'error')
+            .map((r: { status: string; address: string; error: string }) => `${r.address}: ${r.error}`)
+            .join('\n');
+          message += `\nFailed details:\n${failedDetails}`;
+        }
+
+        alert(message);
+        if (successfulMints > 0) setInviteSent(true);
+
+      } catch (error) {
+        console.error("Error during mint request:", error);
+        throw new Error(`Mint request failed: ${error instanceof Error ? error.message : String(error)}`);
       }
+
     } catch (error) {
-      console.error("Error resolving addresses:", error)
-      alert(error instanceof Error ? error.message : "An error occurred while resolving addresses. Please try again.")
+      console.error("Error in invite process:", error);
+      alert(error instanceof Error ? error.message : "An unexpected error occurred");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }  
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -164,7 +198,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {invites.map((invite, index) => (
+          {invites.map((invite, _index) => (
             <div key={invite.id} className="grid gap-2">
               <div className="flex items-center gap-4">
                 <Input
