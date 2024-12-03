@@ -16,7 +16,7 @@ export const enum LetterState {
     [LetterState.CORRECT]: '🟩',
     [LetterState.PRESENT]: '🟨',
     [LetterState.ABSENT]: '⬜',
-    [LetterState.INITIAL]: null
+    [LetterState.INITIAL]: '⬜'
   }
 
   export type GameTile = {

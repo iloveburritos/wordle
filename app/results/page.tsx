@@ -4,10 +4,11 @@
 
 import React from 'react';
 import { useSearchParams } from 'next/navigation';
+import GameResultGrid from '@/components/GameResultGrid';
 
 interface PlayerStat {
   tokenId: string;
-  score: string | null;
+  score: string;
   user: string;
 }
 
@@ -36,10 +37,17 @@ export default function Results() {
               <td style={{ border: '1px solid black', padding: '8px' }}>
                 {stat.tokenId === '0' ? 'No Token Connected' : stat.tokenId}
               </td>
-              <td style={{ border: '1px solid black', padding: '8px' }}>
+              <td style={{ border: '1px solid black', padding: '8px', minWidth: '200px' }}>
                 {stat.score === null ? 'Score Not Set' : 
                  stat.score === '' ? 'Empty Score' : 
-                 stat.score}
+                 stat.score.startsWith('Failed') ? stat.score : (
+                   <div className="flex justify-center">
+                     <GameResultGrid 
+                       encryptedScore={stat.score} 
+                       hashScore="" 
+                     />
+                   </div>
+                 )}
               </td>
             </tr>
           ))}
@@ -47,6 +55,15 @@ export default function Results() {
       </table>
 
       <p style={{ marginTop: '40px' }}>Thank you for playing!</p>
+      
+      <div style={{ marginTop: '20px', fontSize: '0.9em', color: '#666' }}>
+        <p>Score Legend:</p>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '10px' }}>
+          <span>🟩 Correct</span>
+          <span>🟨 Present</span>
+          <span>⬜ Absent</span>
+        </div>
+      </div>
     </div>
   );
 }
