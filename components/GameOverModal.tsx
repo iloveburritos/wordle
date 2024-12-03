@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation'; // Import useRouter for navigation
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { GameResult, icons } from '../lib/types';
+import { GameResult, icons, LetterState } from '../lib/types';
 import { SiweMessage } from 'siwe';
 import { useWallets } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
@@ -28,7 +28,11 @@ interface GameOverModalProps {
 
 // Convert the board to a string grid representation
 const renderGrid = (board: GameResult['board']): string => {
-  return board
+  // Find the last completed row (where all tiles have a non-INITIAL state)
+  const lastCompletedRowIndex = board.findIndex(row => row.some(tile => tile.state === LetterState.INITIAL));
+  const completedRows = lastCompletedRowIndex === -1 ? board : board.slice(0, lastCompletedRowIndex);
+
+  return completedRows
     .map((row) => row.map((tile) => icons[tile.state]).join(''))
     .join('\n');
 };
