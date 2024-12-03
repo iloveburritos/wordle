@@ -34,12 +34,14 @@ interface InviteModalProps {
 
 export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
   const [invites, setInvites] = useState([{ id: 1, identifier: '' }])
+  const [groupName, setGroupName] = useState('')
   const [errors, setErrors] = useState<{ [key: number]: string }>({})
   const [isLoading, setIsLoading] = useState(false)
   const [inviteSent, setInviteSent] = useState(false)
 
   const resetForm = () => {
     setInvites([{ id: 1, identifier: '' }])
+    setGroupName('')
     setErrors({})
     setIsLoading(false)
     setInviteSent(false)
@@ -89,6 +91,11 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
   };
 
   async function handleSendInvites() {
+    if (!groupName.trim()) {
+      alert("Please enter a group name")
+      return
+    }
+
     if (Object.values(errors).some(error => error) || invites.some(invite => !invite.identifier)) {
       alert("Please fill out all fields correctly before sending invites.")
       return
@@ -198,6 +205,19 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="groupName">Group Name</Label>
+            <Input
+              id="groupName"
+              placeholder="Enter group name"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="flex-grow"
+              disabled={isLoading}
+              required
+            />
+          </div>
+
           {invites.map((invite, _index) => (
             <div key={invite.id} className="grid gap-2">
               <div className="flex items-center gap-4">
