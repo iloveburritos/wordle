@@ -33,4 +33,6 @@ export const enum LetterState {
     encryptedString: EncryptedGameResult;
     isSuccessful: boolean;
     score: number;
+    encryptedSymmetricKey?: string;
+    dataToEncryptHash?: string;
   }

@@ -62,20 +62,34 @@ export async function fetchScoresForCurrentGame() {
   try {
     const RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC_URL;
     const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
-    if (!CONTRACT_ADDRESS) {
-      throw new Error('Contract address is not defined');
+    
+    // Validate environment variables
+    if (!RPC_URL || !CONTRACT_ADDRESS) {
+      throw new Error('Missing environment variables: RPC_URL or CONTRACT_ADDRESS');
     }
-    // Step 1: Connect to the blockchain and retrieve the currentGame number
-    const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, WordleABI, provider);
 
-    const currentGame = await contract.currentGame();
+    // Connect to provider with error handling
+    const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+    await provider.ready; // Ensure provider is connected
+
+    // Initialize contract with validation
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, WordleABI, provider);
+    if (!contract) {
+      throw new Error('Failed to initialize contract');
+    }
+
+    // Get current game with error handling
+    const currentGame = await contract.currentGame().catch((error: any) => {
+      console.error('Error fetching current game:', error);
+      throw new Error(`Failed to fetch current game: ${error.message}`);
+    });
+
     console.log(`Current Game: ${currentGame.toString()}`);
 
-    // Step 2: Define the GraphQL query with the retrieved currentGame number
+    // GraphQL query with error handling
     const query = {
       query: `{ 
-        scoreAddeds(where: { currentGame: ${currentGame} }) { 
+        scoreAddeds(where: { currentGame: ${currentGame.toString()} }) { 
           id 
           tokenId 
           user 
@@ -86,24 +100,35 @@ export async function fetchScoresForCurrentGame() {
       }`,
     };
 
-    // Step 3: Call the GraphQL endpoint
-    const response = await fetch("https://api.studio.thegraph.com/query/94961/worldv4/version/latest", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(query),
-    });
+    const response = await fetch(
+      "https://api.studio.thegraph.com/query/94961/worldv4/version/latest",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(query),
+      }
+    );
 
     if (!response.ok) {
-      throw new Error(`GraphQL query failed: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`GraphQL query failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    // Step 4: Parse and log the response
     const responseData = await response.json();
+    
+    // Validate response data
+    if (!responseData.data || !responseData.data.scoreAddeds) {
+      throw new Error('Invalid response format from GraphQL');
+    }
+
     console.log("GraphQL Query Response:", responseData);
     return responseData;
+
   } catch (error) {
     console.error("Error fetching scores for the current game:", error);
+    // Rethrow the error with more context
+    throw new Error(`Failed to fetch scores: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

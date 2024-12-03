@@ -33,9 +33,13 @@ export default function Results() {
           {playerStats.map((stat, index) => (
             <tr key={index}>
               <td style={{ border: '1px solid black', padding: '8px' }}>{stat.user}</td>
-              <td style={{ border: '1px solid black', padding: '8px' }}>{stat.tokenId}</td>
               <td style={{ border: '1px solid black', padding: '8px' }}>
-                {stat.score !== null ? stat.score : 'Failed to Decrypt'}
+                {stat.tokenId === '0' ? 'No Token Connected' : stat.tokenId}
+              </td>
+              <td style={{ border: '1px solid black', padding: '8px' }}>
+                {stat.score === null ? 'Score Not Set' : 
+                 stat.score === '' ? 'Empty Score' : 
+                 stat.score}
               </td>
             </tr>
           ))}

@@ -51,8 +51,12 @@ export default function GameOverModal({
     onSeeResults();
   
     try {
+      if (!userWallet) {
+        throw new Error("Please connect your wallet first");
+      }
+  
       const stats = await fetchScoresForCurrentGame();
-      console.log("Stats:", stats);
+      console.log("Raw Stats:", stats);
   
       const userSigner = await userWallet.getEthereumProvider();
       const provider = new ethers.providers.Web3Provider(userSigner);
@@ -62,31 +66,58 @@ export default function GameOverModal({
       for (const entry of stats.data.scoreAddeds) {
         const { tokenId, encryptedScore, hashScore, user } = entry;
         try {
-          const score = await decryptStringWithContractConditions(
+          console.log(`Processing entry for tokenId ${tokenId}:`, {
             encryptedScore,
             hashScore,
-            signer,
-            "baseSepolia"
-          );
-          decryptedResults.push({ tokenId, score, user });
+            user
+          });
+  
+          // Add retry logic for 502 errors
+          let retryCount = 0;
+          let score;
+          while (retryCount < 3) {
+            try {
+              score = await decryptStringWithContractConditions(
+                encryptedScore,
+                hashScore,
+                signer,
+                "baseSepolia"
+              );
+              break;
+            } catch (decryptError) {
+              console.error(`Decryption attempt ${retryCount + 1} failed:`, decryptError);
+              retryCount++;
+              if (retryCount < 3) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+                continue;
+              }
+              throw decryptError;
+            }
+          }
+  
+          decryptedResults.push({ 
+            tokenId, 
+            score: score || 'Decryption failed', 
+            user 
+          });
         } catch (error) {
-          console.error(`Failed to decrypt score for tokenId ${tokenId}:`, error);
-          decryptedResults.push({ tokenId, score: null, user });
+          console.error(`Decryption error for tokenId ${tokenId}:`, error);
+          decryptedResults.push({ 
+            tokenId, 
+            score: `Failed: ${error.message || 'Unknown error'}`, 
+            user 
+          });
         }
       }
   
-      console.log("Decrypted Results:", decryptedResults);
-  
-      // Navigate to the results page with decrypted results
+      console.log("Final Decrypted Results:", decryptedResults);
       const queryString = encodeURIComponent(JSON.stringify(decryptedResults));
       router.push(`/results?stats=${queryString}`);
     } catch (error) {
-      console.error("Error fetching or processing stats:", error);
+      console.error("Error in handleSeeStats:", error);
+      alert(`Failed to fetch stats: ${error.message}`);
     }
   };
-  
-  
-  
 
   const handleShare = async () => {
     try {
