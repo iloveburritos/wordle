@@ -37,6 +37,7 @@ export default function Game() {
   const [isGameOverModalOpen, setIsGameOverModalOpen] = useState(false);
   const [gameOverMessage, setGameOverMessage] = useState('');
   const [encryptedResult, setEncryptedResult] = useState<EncryptedResult | null>(null);
+  const [isScoreSubmitted, setIsScoreSubmitted] = useState(false);
   
   // Construct the current row based on the current row index
   const currentRow = useMemo(() => board[currentRowIndex], [board, currentRowIndex]);
@@ -175,17 +176,19 @@ export default function Game() {
       if (newRow.every((tile) => tile.state === LetterState.CORRECT) || currentRowIndex === board.length - 1) {
         const finalSuccess = newRow.every((tile) => tile.state === LetterState.CORRECT);
         setTimeout(async () => {
-          const message = finalSuccess ? ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][currentRowIndex] : `The answer was ${answer.toUpperCase()}`;
+          const message = finalSuccess 
+            ? ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][currentRowIndex] 
+            : `The answer was ${answer.toUpperCase()}`;
           setGameOverMessage(message);
           setGrid(genResultGrid());
           setSuccess(finalSuccess);
-          setIsGameOverModalOpen(true);
-
-          // Encrypt and send the game result to the API endpoint
+          
+          // Encrypt the game result
           const encryptedResult = await encryptGameResult(board);
           console.log('Encrypted result:', encryptedResult);
           setEncryptedResult(encryptedResult);
-          //await sendResultToAPI(encryptedResult, finalSuccess, currentRowIndex + 1);
+          
+          setIsGameOverModalOpen(true);
         }, 1600);
       } else if (currentRowIndex < board.length - 1) {
         setCurrentRowIndex((prevIndex) => prevIndex + 1);
@@ -262,11 +265,10 @@ export default function Game() {
         <GameOverModal
           isOpen={isGameOverModalOpen}
           onClose={() => setIsGameOverModalOpen(false)}
-          onShare={handleShare}
           onSeeResults={handleSeeResults}
           gameResult={{
             board,
-            encryptedString: encryptedResult, // Assuming encryption logic is handled elsewhere
+            encryptedString: encryptedResult,
             isSuccessful: success,
             score: currentRowIndex + 1,
           }}
