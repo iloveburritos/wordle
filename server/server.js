@@ -226,7 +226,6 @@ app.post("/send-score", async (req, res) => {
     if (!verification) {
       return res.status(401).json({ error: "Invalid SIWE signature" });
     }
-
     console.log(`Score received: ${score}`);
 
     // Extract the wallet address from the SIWE message
@@ -268,7 +267,6 @@ app.post("/send-score", async (req, res) => {
       console.error("Error running GraphQL query:", error.message);
       return res.status(500).json({ error: "Failed to fetch data from The Graph" });
     }
-
     // create ethers wallet using process.env.CONTRACT_OWNER_PRIVATE_KEY
     const privateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
     const wallet = new ethers.Wallet(privateKey, provider);
