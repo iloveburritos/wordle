@@ -1,9 +1,9 @@
-import { LitNodeClient, encryptString, decryptToString } from "@lit-protocol/lit-node-client";
+import { LitNodeClient } from "@lit-protocol/lit-node-client";
+import {encryptString, decryptToString} from "@lit-protocol/encryption"; 
 import { ethers } from "ethers";
-import { LitNetwork } from "@lit-protocol/constants";
+import { LIT_NETWORK, LIT_ABILITY } from "@lit-protocol/constants";
 import { EvmContractConditions } from "@lit-protocol/types";
 import {
-  LitAbility,
   LitAccessControlConditionResource,
   createSiweMessageWithRecaps,
   generateAuthSig,
@@ -50,7 +50,7 @@ import {
   
       console.log("🔄 Connecting to Lit network...");
       litNodeClient = new LitNodeClient({
-        litNetwork: LitNetwork.Cayenne,
+        litNetwork: LIT_NETWORK.DatilTest,
         debug: false,
       });
       await litNodeClient.connect();
@@ -117,7 +117,7 @@ import {
         ];
       console.log("🔄 Connecting to Lit network...");
       litNodeClient = new LitNodeClient({
-        litNetwork: LitNetwork.Cayenne,
+        litNetwork: LIT_NETWORK.DatilTest,
         debug: true,
       });
       await litNodeClient.connect();
@@ -130,7 +130,7 @@ import {
         resourceAbilityRequests: [
           {
             resource: new LitAccessControlConditionResource("*"),
-            ability: LitAbility.AccessControlConditionDecryption,
+            ability: LIT_ABILITY.AccessControlConditionDecryption,
           },
         ],
         authNeededCallback: async ({
