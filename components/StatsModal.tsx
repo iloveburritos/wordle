@@ -18,11 +18,13 @@ interface StatsModalProps {
 export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { wallets } = useWallets();
   const userWallet = wallets[0];
 
   const handleSeeStats = async () => {
     setIsLoading(true);
+    setIsProcessing(true);
     try {
       if (!userWallet) {
         throw new Error("Please connect your wallet first");
@@ -69,32 +71,45 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
       }
 
       const queryString = encodeURIComponent(JSON.stringify(decryptedResults));
-      router.push(`/results?stats=${queryString}`);
+      await router.push(`/results?stats=${queryString}`);
     } catch (error) {
       console.error('Error in handleSeeStats:', error);
       alert(`Failed to fetch stats: ${error.message}`);
     } finally {
       setIsLoading(false);
+      setIsProcessing(false);
+      onClose();
+    }
+  };
+
+  const handleClose = () => {
+    if (!isProcessing) {
+      onClose();
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="bg-black opacity-80">
         <DialogHeader>
           <DialogTitle>View Game Stats</DialogTitle>
-          <DialogDescription>Your score has been submitted! Ready to see how you compare?</DialogDescription>
+          <DialogDescription>
+            {isProcessing 
+              ? "Decrypting scores... Please sign the message when prompted."
+              : "Ready to see how you compare?"
+            }
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter className="sm:justify-start">
           <Button 
             onClick={handleSeeStats} 
             variant="outline"
-            disabled={isLoading}
+            disabled={isLoading || isProcessing}
           >
-            {isLoading ? (
+            {isLoading || isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading...
+                {isProcessing ? 'Decrypting...' : 'Loading...'}
               </>
             ) : (
               'See Stats'
