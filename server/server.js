@@ -23,11 +23,12 @@ app.use(express.json()); // Middleware to parse JSON request bodies
 // POST endpoint to mint NFTs
 app.post("/mint", async (req, res) => {
   try {
-    // Extract wallet addresses from the request body
     const { walletAddresses } = req.body;
 
     if (!walletAddresses || !Array.isArray(walletAddresses)) {
-      return res.status(400).json({ error: "Invalid request body. Provide an array of wallet addresses." });
+      return res.status(400).json({ 
+        error: "Invalid request body. Provide an array of wallet addresses." 
+      });
     }
 
     console.log("Wallet Addresses:", walletAddresses);
@@ -46,19 +47,71 @@ app.post("/mint", async (req, res) => {
 
     console.log("Connected to provider and contract");
 
-    const mintPromises = walletAddresses.map(async (address) => {
-      const tx = await contract.safeMint(address);
-      console.log(`Transaction sent for ${address}: ${tx.hash}`);
-      await tx.wait();
-      return tx.hash;
+    // Process each address sequentially to avoid nonce issues
+    const results = [];
+for (const address of walletAddresses) {
+  try {
+    console.log(`Processing address: ${address}`);
+    
+    // Check if address already has an NFT
+    const balance = await contract.balanceOf(address);
+    
+    if (balance.gt(0)) {
+      console.log(`Address ${address} already has an NFT`);
+      results.push({
+        address,
+        status: 'skipped',
+        message: 'Address already has an NFT'
+      });
+      continue;
+    }
+
+    // Get the latest nonce for this transaction
+    const nonce = await wallet.getTransactionCount("latest");
+    
+    // Estimate gas for this specific transaction
+    let gasEstimate;
+    try {
+      gasEstimate = await contract.estimateGas.safeMint(address);
+      console.log(`Gas estimate for ${address}: ${gasEstimate.toString()}`);
+    } catch (gasError) {
+      throw new Error(`Gas estimation failed: ${gasError.message}`);
+    }
+    
+    const tx = await contract.safeMint(address, {
+      nonce: nonce,
+      gasLimit: gasEstimate.mul(120).div(100), // Add 20% buffer
+      maxFeePerGas: ethers.utils.parseUnits("1.5", "gwei"),
+      maxPriorityFeePerGas: ethers.utils.parseUnits("1.5", "gwei")
     });
 
-    const txHashes = await Promise.all(mintPromises);
+    console.log(`Transaction sent for ${address}: ${tx.hash}`);
+    const receipt = await tx.wait();
+    
+    if (receipt.status === 0) {
+      throw new Error('Transaction reverted on chain');
+    }
+
+    results.push({
+      address,
+      status: 'success',
+      txHash: tx.hash
+    });
+  } catch (error) {
+    console.error(`Error minting for address ${address}:`, error);
+    results.push({
+      address,
+      status: 'error',
+      error: error.message,
+      details: error.receipt ? `Transaction reverted: ${error.receipt.transactionHash}` : undefined
+    });
+  }
+}
 
     return res.status(200).json({
       success: true,
-      message: "NFTs minted successfully.",
-      transactionHashes: txHashes,
+      message: "NFT minting process completed",
+      results: results
     });
   } catch (error) {
     console.error("Minting error:", error);

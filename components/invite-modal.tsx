@@ -106,13 +106,25 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
     try {
       console.log("Starting invite process...");
       
-      // Resolve addresses with detailed logging
+      // First, deduplicate addresses during resolution
+      const seenAddresses = new Set<string>();
       const resolvedInvites = await Promise.all(
         invites.map(async (invite) => {
           try {
             console.log(`Resolving address for: ${invite.identifier}`);
             const resolvedAddress = await resolveAddress(invite.identifier);
             console.log(`Successfully resolved ${invite.identifier} to ${resolvedAddress}`);
+            
+            // Check if we've already seen this address
+            if (seenAddresses.has(resolvedAddress.toLowerCase())) {
+              return {
+                ...invite,
+                resolvedAddress: null,
+                error: 'Duplicate address detected'
+              };
+            }
+            
+            seenAddresses.add(resolvedAddress.toLowerCase());
             return { ...invite, resolvedAddress, error: null };
           } catch (error) {
             console.error(`Failed to resolve ${invite.identifier}:`, error);
@@ -151,7 +163,10 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ walletAddresses: addressesToSend }),
+          body: JSON.stringify({ 
+            walletAddresses: addressesToSend,
+            groupName // Add group name to the request
+          }),
         });
 
         console.log("Received response from server");
