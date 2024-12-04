@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { GameResult, icons, LetterState } from '../lib/types';
+import { EncryptedResult, GameBoard, GameResult, icons, LetterState } from '../lib/types';
 import { SiweMessage } from 'siwe';
 import { useWallets } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
@@ -13,8 +13,15 @@ interface SubmitScoreModalProps {
   isOpen: boolean;
   onClose: () => void;
   onScoreSubmitted: () => void;
-  gameResult: GameResult;
+  onSubmitStart: () => void;
+  gameResult: {
+    board: GameBoard;
+    encryptedString: EncryptedResult;
+    isSuccessful: boolean;
+    score: number;
+  };
   message: string;
+  isSubmitting: boolean;
 }
 
 const renderGrid = (board: GameResult['board']): string => {
@@ -25,14 +32,13 @@ const renderGrid = (board: GameResult['board']): string => {
     .join('\n');
 };
 
-export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, gameResult, message }: SubmitScoreModalProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, onSubmitStart, gameResult, message, isSubmitting }: SubmitScoreModalProps) {
   const { wallets } = useWallets();
   const userWallet = wallets[0];
   const grid = renderGrid(gameResult.board);
 
   const handleSubmitScore = async () => {
-    setIsSubmitting(true);
+    onSubmitStart();
     try {
       const response = await fetch('http://localhost:3001/generate-nonce', {
         method: 'GET',
@@ -84,8 +90,6 @@ export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, ga
     } catch (error) {
       console.error('Error submitting score:', error);
       alert('Failed to submit score. Please try again later.');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

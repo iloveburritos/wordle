@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import { EncryptedResult, GameBoard, GameResult } from '../lib/types';
+import { EncryptedResult, GameBoard } from '../lib/types';
 import SubmitScoreModal from './SubmitScoreModal';
 import StatsModal from './StatsModal';
 
@@ -27,33 +27,50 @@ export default function GameOverModal({
 }: GameOverModalProps) {
   const [showSubmitModal, setShowSubmitModal] = useState(true);
   const [showStatsModal, setShowStatsModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleScoreSubmitted = () => {
+    console.log("Score submitted successfully, showing stats modal");
     setShowSubmitModal(false);
     setShowStatsModal(true);
+    setIsSubmitting(false);
+  };
+
+  const handleSubmitStart = () => {
+    console.log("Starting score submission");
+    setIsSubmitting(true);
   };
 
   const handleClose = () => {
-    setShowSubmitModal(false);
-    setShowStatsModal(false);
-    onClose();
+    if (!isSubmitting) {
+      console.log("Closing modals");
+      setShowSubmitModal(false);
+      setShowStatsModal(false);
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
 
   return (
     <>
-      <SubmitScoreModal
-        isOpen={showSubmitModal}
-        onClose={handleClose}
-        onScoreSubmitted={handleScoreSubmitted}
-        gameResult={gameResult}
-        message={message}
-      />
-      <StatsModal
-        isOpen={showStatsModal}
-        onClose={handleClose}
-      />
+      {showSubmitModal && (
+        <SubmitScoreModal
+          isOpen={true}
+          onClose={handleClose}
+          onScoreSubmitted={handleScoreSubmitted}
+          onSubmitStart={handleSubmitStart}
+          gameResult={gameResult}
+          message={message}
+          isSubmitting={isSubmitting}
+        />
+      )}
+      {showStatsModal && (
+        <StatsModal
+          isOpen={true}
+          onClose={handleClose}
+        />
+      )}
     </>
   );
 }
