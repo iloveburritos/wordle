@@ -34,17 +34,21 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
         contractAddress,
         [
           'function registerMinter()',
-          'function tokensHeld(address) view returns (uint256)'
+          'event NewGroup(uint256 indexed tokenId, address indexed minter)'
         ],
         signer
       )
 
+      // Set up event listener before sending transaction
+      contract.once('NewGroup', (tokenId, minter) => {
+        if (minter.toLowerCase() === user.wallet?.address?.toLowerCase()) {
+          setTokenId(tokenId.toString())
+        }
+      })
+
       const tx = await contract.registerMinter()
       await tx.wait()
       
-      // Get the token ID after successful registration
-      const tokenId = await contract.tokensHeld(user.wallet.address)
-      setTokenId(tokenId.toString())
     } catch (error) {
       console.error('Error creating group:', error)
       setError('Failed to register. Please try again.')
