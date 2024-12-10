@@ -73,13 +73,17 @@ export async function fetchScoresForCurrentGame() {
     // GraphQL query with error handling
     const query = {
       query: `{ 
-        scoreAddeds(where: { currentGame: "${currentGame.toString()}" }) { 
+        scoreAddeds(
+          where: { gameId: "${currentGame.toString()}" }
+          orderBy: blockTimestamp
+          orderDirection: desc
+        ) { 
           id 
-          tokenId 
-          user 
-          encryptedScore 
-          hashScore 
-          currentGame 
+          gameId
+          user
+          ciphertext
+          datatoencrypthash
+          blockTimestamp
         } 
       }`,
     };

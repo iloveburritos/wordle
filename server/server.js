@@ -293,10 +293,62 @@ app.post("/send-score", async (req, res) => {
     }
 
     // If we get here, the user has at least one token
-    console.log(`Score received: ${score}`);
+    console.log(`Score received:`, score);
 
-    // TODO: Add score to contract
-    res.status(200).json({ message: "Score submitted successfully" });
+    // Submit score to contract
+    try {
+      const provider = new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_BASE_RPC_URL);
+      const ownerPrivateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
+      
+      if (!ownerPrivateKey) {
+        throw new Error('Contract owner private key not configured');
+      }
+
+      const wallet = new ethers.Wallet(ownerPrivateKey, provider);
+      const contract = new ethers.Contract(process.env.NEXT_PUBLIC_CONTRACT_ADDRESS, WordleABI, wallet);
+
+      console.log('Contract interaction details:', {
+        walletAddress,
+        ciphertext: score.ciphertext,
+        dataToEncryptHash: score.dataToEncryptHash,
+        contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
+      });
+      
+      // Call setScore with the user's wallet address
+      const tx = await contract.setScore(
+        walletAddress,  // user's wallet address
+        score.ciphertext,
+        score.dataToEncryptHash
+      );
+
+      console.log('Transaction sent:', tx.hash);
+      const receipt = await tx.wait();
+      console.log('Transaction confirmed:', {
+        hash: receipt.transactionHash,
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed.toString()
+      });
+
+      // Verify the score was set
+      try {
+        const savedScore = await contract.getScore(walletAddress);
+        console.log('Verified saved score:', {
+          ciphertext: savedScore.ciphertext,
+          datatoencrypthash: savedScore.datatoencrypthash
+        });
+      } catch (verifyError) {
+        console.warn('Could not verify saved score:', verifyError);
+      }
+
+      res.status(200).json({ 
+        message: "Score submitted successfully",
+        txHash: tx.hash,
+        walletAddress: walletAddress
+      });
+    } catch (contractError) {
+      console.error('Contract interaction error:', contractError);
+      throw new Error(`Failed to submit score to contract: ${contractError.message}`);
+    }
   } catch (error) {
     console.error("Error verifying score:", error);
     return res.status(500).json({
