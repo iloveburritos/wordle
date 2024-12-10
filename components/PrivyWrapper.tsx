@@ -5,11 +5,10 @@
 import { useState, useEffect } from 'react';
 import { PrivyProvider } from '@privy-io/react-auth';
 
-export const PrivyWrapper = ({ children }: { children: React.ReactNode }) => {
+export function PrivyWrapper({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    console.log("PrivyWrapper loaded and PrivyProvider is now wrapping the app.");
     setMounted(true);
   }, []);
 
@@ -20,15 +19,12 @@ export const PrivyWrapper = ({ children }: { children: React.ReactNode }) => {
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
-      clientId={process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID || ''}
       config={{
+        loginMethods: ['email', 'wallet'],
         appearance: {
-          landingHeader: 'Welcome to onchain Wordle',
-          loginMessage: 'Sign in to share your scores with friends', 
           theme: 'dark',
-        }
+        },
       }}
-      
     >
       {children}
     </PrivyProvider>

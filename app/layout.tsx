@@ -1,9 +1,13 @@
 // app/layout.tsx
 
+// app/layout.tsx
 import type { Metadata } from "next";
 import "../styles/globals.css";
 import Header from "@/components/Header";
 import { PrivyWrapper } from '@/components/PrivyWrapper';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: "Wordl3",
@@ -17,10 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body className={inter.className}>
         <PrivyWrapper>
           <Header />
-          <main className="pt-[88px]"> {/* Add padding-top to account for the fixed header */}
+          <main className="pt-[88px]">
             {children}
           </main>
         </PrivyWrapper>

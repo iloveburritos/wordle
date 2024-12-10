@@ -6,12 +6,14 @@ import { usePrivy } from '@privy-io/react-auth'
 import { Button } from '@/components/ui/button'
 import ErrorModal from '@/components/error-modal'
 import InviteModal from '@/components/invite-modal'
+import CreateGame from '@/components/CreateGame'
 
 export default function Home() {
   const router = useRouter()
   const { authenticated } = usePrivy()
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+  const [isCreateGameModalOpen, setIsCreateGameModalOpen] = useState(false)
 
   const handleAction = (action: string) => {
     if (!authenticated) {
@@ -21,6 +23,8 @@ export default function Home() {
         router.push('/game')
       } else if (action === 'team') {
         setIsInviteModalOpen(true)
+      } else if (action === 'create') {
+        setIsCreateGameModalOpen(true)
       }
     }
   }
@@ -39,6 +43,9 @@ export default function Home() {
           <Button size="lg" onClick={() => handleAction('team')}>
             Invite Players
           </Button>
+          <Button size="lg" onClick={() => handleAction('create')}>
+            Create Game
+          </Button>
         </div>
       </main>
       <ErrorModal 
@@ -48,6 +55,10 @@ export default function Home() {
       <InviteModal
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
+      />
+      <CreateGame 
+        isOpen={isCreateGameModalOpen}
+        onClose={() => setIsCreateGameModalOpen(false)}
       />
     </div>
   )

@@ -2,6 +2,11 @@ const WordleABI = [
     {
         "inputs": [
             {
+                "internalType": "string",
+                "name": "uri",
+                "type": "string"
+            },
+            {
                 "internalType": "address",
                 "name": "initialOwner",
                 "type": "address"
@@ -19,24 +24,13 @@ const WordleABI = [
             },
             {
                 "internalType": "uint256",
-                "name": "tokenId",
+                "name": "balance",
                 "type": "uint256"
             },
             {
-                "internalType": "address",
-                "name": "owner",
-                "type": "address"
-            }
-        ],
-        "name": "ERC721IncorrectOwner",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "operator",
-                "type": "address"
+                "internalType": "uint256",
+                "name": "needed",
+                "type": "uint256"
             },
             {
                 "internalType": "uint256",
@@ -44,7 +38,7 @@ const WordleABI = [
                 "type": "uint256"
             }
         ],
-        "name": "ERC721InsufficientApproval",
+        "name": "ERC1155InsufficientBalance",
         "type": "error"
     },
     {
@@ -55,7 +49,23 @@ const WordleABI = [
                 "type": "address"
             }
         ],
-        "name": "ERC721InvalidApprover",
+        "name": "ERC1155InvalidApprover",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "idsLength",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "valuesLength",
+                "type": "uint256"
+            }
+        ],
+        "name": "ERC1155InvalidArrayLength",
         "type": "error"
     },
     {
@@ -66,18 +76,7 @@ const WordleABI = [
                 "type": "address"
             }
         ],
-        "name": "ERC721InvalidOperator",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "owner",
-                "type": "address"
-            }
-        ],
-        "name": "ERC721InvalidOwner",
+        "name": "ERC1155InvalidOperator",
         "type": "error"
     },
     {
@@ -88,7 +87,7 @@ const WordleABI = [
                 "type": "address"
             }
         ],
-        "name": "ERC721InvalidReceiver",
+        "name": "ERC1155InvalidReceiver",
         "type": "error"
     },
     {
@@ -99,18 +98,23 @@ const WordleABI = [
                 "type": "address"
             }
         ],
-        "name": "ERC721InvalidSender",
+        "name": "ERC1155InvalidSender",
         "type": "error"
     },
     {
         "inputs": [
             {
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "operator",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
             }
         ],
-        "name": "ERC721NonexistentToken",
+        "name": "ERC1155MissingApprovalForAll",
         "type": "error"
     },
     {
@@ -141,32 +145,7 @@ const WordleABI = [
             {
                 "indexed": true,
                 "internalType": "address",
-                "name": "owner",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "approved",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256"
-            }
-        ],
-        "name": "Approval",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "owner",
+                "name": "account",
                 "type": "address"
             },
             {
@@ -190,12 +169,50 @@ const WordleABI = [
         "inputs": [
             {
                 "indexed": true,
-                "internalType": "uint256",
-                "name": "currentGame",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "newForwarder",
+                "type": "address"
             }
         ],
-        "name": "GameEnded",
+        "name": "ForwarderUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+            }
+        ],
+        "name": "NewGroup",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "user",
+                "type": "address"
+            }
+        ],
+        "name": "NewUser",
         "type": "event"
     },
     {
@@ -231,17 +248,36 @@ const WordleABI = [
                 "internalType": "address",
                 "name": "user",
                 "type": "address"
+            }
+        ],
+        "name": "RemoveUser",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "gameId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "user",
+                "type": "address"
             },
             {
                 "indexed": false,
                 "internalType": "string",
-                "name": "encryptedScore",
+                "name": "ciphertext",
                 "type": "string"
             },
             {
                 "indexed": false,
                 "internalType": "string",
-                "name": "hashScore",
+                "name": "datatoencrypthash",
                 "type": "string"
             }
         ],
@@ -251,6 +287,31 @@ const WordleABI = [
     {
         "anonymous": false,
         "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "previousGameId",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "newGameId",
+                "type": "uint256"
+            }
+        ],
+        "name": "ScoresCleared",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "operator",
+                "type": "address"
+            },
             {
                 "indexed": true,
                 "internalType": "address",
@@ -264,13 +325,19 @@ const WordleABI = [
                 "type": "address"
             },
             {
-                "indexed": true,
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256"
+                "indexed": false,
+                "internalType": "uint256[]",
+                "name": "ids",
+                "type": "uint256[]"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256[]",
+                "name": "values",
+                "type": "uint256[]"
             }
         ],
-        "name": "Transfer",
+        "name": "TransferBatch",
         "type": "event"
     },
     {
@@ -278,57 +345,68 @@ const WordleABI = [
         "inputs": [
             {
                 "indexed": true,
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "operator",
+                "type": "address"
             },
             {
                 "indexed": true,
                 "internalType": "address",
-                "name": "userAddress",
+                "name": "from",
                 "type": "address"
-            }
-        ],
-        "name": "newUser",
-        "type": "event"
-    },
-    {
-        "inputs": [],
-        "name": "activeTokenCount",
-        "outputs": [
+            },
             {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
+                "indexed": true,
                 "internalType": "address",
                 "name": "to",
                 "type": "address"
             },
             {
+                "indexed": false,
                 "internalType": "uint256",
-                "name": "tokenId",
+                "name": "id",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "value",
                 "type": "uint256"
             }
         ],
-        "name": "approve",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+        "name": "TransferSingle",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "value",
+                "type": "string"
+            },
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "id",
+                "type": "uint256"
+            }
+        ],
+        "name": "URI",
+        "type": "event"
     },
     {
         "inputs": [
             {
                 "internalType": "address",
-                "name": "owner",
+                "name": "account",
                 "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "id",
+                "type": "uint256"
             }
         ],
         "name": "balanceOf",
@@ -343,8 +421,50 @@ const WordleABI = [
         "type": "function"
     },
     {
+        "inputs": [
+            {
+                "internalType": "address[]",
+                "name": "accounts",
+                "type": "address[]"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "ids",
+                "type": "uint256[]"
+            }
+        ],
+        "name": "balanceOfBatch",
+        "outputs": [
+            {
+                "internalType": "uint256[]",
+                "name": "",
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "account",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            }
+        ],
+        "name": "burn",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
         "inputs": [],
-        "name": "clearScores",
+        "name": "clearScore",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -378,41 +498,29 @@ const WordleABI = [
     {
         "inputs": [
             {
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256"
-            }
-        ],
-        "name": "getApproved",
-        "outputs": [
-            {
                 "internalType": "address",
-                "name": "",
+                "name": "user",
                 "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256"
             }
         ],
         "name": "getScore",
         "outputs": [
             {
-                "internalType": "string",
-                "name": "encryptedScore",
-                "type": "string"
-            },
-            {
-                "internalType": "string",
-                "name": "hashScore",
-                "type": "string"
+                "components": [
+                    {
+                        "internalType": "string",
+                        "name": "ciphertext",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "datatoencrypthash",
+                        "type": "string"
+                    }
+                ],
+                "internalType": "struct MyERC1155.Score",
+                "name": "",
+                "type": "tuple"
             }
         ],
         "stateMutability": "view",
@@ -441,7 +549,7 @@ const WordleABI = [
         "inputs": [
             {
                 "internalType": "address",
-                "name": "owner",
+                "name": "account",
                 "type": "address"
             },
             {
@@ -462,13 +570,36 @@ const WordleABI = [
         "type": "function"
     },
     {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "account",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+            }
+        ],
+        "name": "mint",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
         "inputs": [],
-        "name": "name",
+        "name": "numTokens",
         "outputs": [
             {
-                "internalType": "string",
+                "internalType": "uint256",
                 "name": "",
-                "type": "string"
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",
@@ -488,22 +619,10 @@ const WordleABI = [
         "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256"
-            }
-        ],
-        "name": "ownerOf",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
+        "inputs": [],
+        "name": "registerMinter",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     },
     {
@@ -517,11 +636,31 @@ const WordleABI = [
         "inputs": [
             {
                 "internalType": "address",
+                "name": "from",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
                 "name": "to",
                 "type": "address"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "ids",
+                "type": "uint256[]"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "values",
+                "type": "uint256[]"
+            },
+            {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
             }
         ],
-        "name": "safeMint",
+        "name": "safeBatchTransferFrom",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -540,30 +679,12 @@ const WordleABI = [
             },
             {
                 "internalType": "uint256",
-                "name": "tokenId",
+                "name": "id",
                 "type": "uint256"
-            }
-        ],
-        "name": "safeTransferFrom",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "from",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
             },
             {
                 "internalType": "uint256",
-                "name": "tokenId",
+                "name": "value",
                 "type": "uint256"
             },
             {
@@ -611,22 +732,22 @@ const WordleABI = [
     {
         "inputs": [
             {
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "user",
+                "type": "address"
             },
             {
                 "internalType": "string",
-                "name": "encryptedScore",
+                "name": "scoreCiphertext",
                 "type": "string"
             },
             {
                 "internalType": "string",
-                "name": "hashScore",
+                "name": "scoreHash",
                 "type": "string"
             }
         ],
-        "name": "setUserScore",
+        "name": "setScore",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -651,58 +772,22 @@ const WordleABI = [
         "type": "function"
     },
     {
-        "inputs": [],
-        "name": "symbol",
-        "outputs": [
-            {
-                "internalType": "string",
-                "name": "",
-                "type": "string"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256"
-            }
-        ],
-        "name": "tokenURI",
-        "outputs": [
-            {
-                "internalType": "string",
-                "name": "",
-                "type": "string"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
         "inputs": [
             {
                 "internalType": "address",
-                "name": "from",
+                "name": "",
                 "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
-            },
+            }
+        ],
+        "name": "tokensHeld",
+        "outputs": [
             {
                 "internalType": "uint256",
-                "name": "tokenId",
+                "name": "",
                 "type": "uint256"
             }
         ],
-        "name": "transferFrom",
-        "outputs": [],
-        "stateMutability": "nonpayable",
+        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -717,7 +802,26 @@ const WordleABI = [
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "name": "uri",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
     }
-];
+]
 
 export { WordleABI };
