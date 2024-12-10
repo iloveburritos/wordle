@@ -37,8 +37,10 @@ export default function Results() {
       }
 
       const stats = await fetchScoresForCurrentGame();
-      if (!stats.data?.scoreAddeds) {
-        console.log('No scores found for current game');
+      console.log("Fetched scores:", stats);
+
+      if (!stats.data?.scoreAddeds || !Array.isArray(stats.data.scoreAddeds)) {
+        console.log('No valid scores found for current game');
         setPlayerStats([]);
         setIsLoading(false);
         return;
@@ -69,6 +71,7 @@ export default function Results() {
                 await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
                 continue;
               }
+              console.error(`Failed to decrypt score after ${retryCount} attempts:`, decryptError);
               throw decryptError;
             }
           }
@@ -87,6 +90,7 @@ export default function Results() {
         }
       }
 
+      console.log("Processed results:", results);
       setPlayerStats(results);
     } catch (error) {
       console.error("Error fetching stats:", error);

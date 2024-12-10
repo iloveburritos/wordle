@@ -73,7 +73,7 @@ export async function fetchScoresForCurrentGame() {
     // GraphQL query with error handling
     const query = {
       query: `{ 
-        scoreAddeds(where: { currentGame_: { equals: "${currentGame.toString()}" } }) { 
+        scoreAddeds(where: { currentGame: "${currentGame.toString()}" }) { 
           id 
           tokenId 
           user 
@@ -83,6 +83,8 @@ export async function fetchScoresForCurrentGame() {
         } 
       }`,
     };
+
+    console.log("Sending GraphQL query:", query);
 
     const response = await fetch(
       SUBGRAPH_URL,
@@ -105,14 +107,19 @@ export async function fetchScoresForCurrentGame() {
     console.log("Raw GraphQL Response:", responseData);
     
     // Validate response data
+    if (!responseData || typeof responseData !== 'object') {
+      console.error('Invalid response format:', responseData);
+      throw new Error('Invalid response format from GraphQL - response is not an object');
+    }
+
     if (!responseData.data) {
       console.error('Invalid response format:', responseData);
       throw new Error('Invalid response format from GraphQL - no data field');
     }
 
-    if (!responseData.data.scoreAddeds) {
+    if (!Array.isArray(responseData.data.scoreAddeds)) {
       console.error('Invalid response format:', responseData);
-      throw new Error('Invalid response format from GraphQL - no scoreAddeds field');
+      throw new Error('Invalid response format from GraphQL - scoreAddeds is not an array');
     }
 
     console.log("GraphQL Query Response:", responseData);
