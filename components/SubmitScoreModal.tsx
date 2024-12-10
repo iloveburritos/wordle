@@ -86,6 +86,11 @@ export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, on
       const message = siweMessage.prepareMessage();
       const signature = await signer.signMessage(message);
 
+      console.log('Sending encrypted score data:', {
+        ciphertext: gameResult.encryptedString.ciphertext,
+        dataToEncryptHash: gameResult.encryptedString.dataToEncryptHash
+      });
+
       const apiResponse = await fetch('http://localhost:3001/send-score', {
         method: 'POST',
         headers: {
@@ -104,13 +109,30 @@ export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, on
 
       if (!apiResponse.ok) {
         const errorData = await apiResponse.json();
-        throw new Error(errorData.error || 'Failed to send score');
+        const errorMessage = errorData.error || 'Failed to send score';
+        
+        // Check if the error is because score was already submitted
+        if (errorMessage.includes('Score already submitted for this game')) {
+          console.log('Score was already submitted for this game, proceeding to stats');
+          onScoreSubmitted();
+          return;
+        }
+        throw new Error(errorMessage);
       }
 
       onScoreSubmitted();
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit score. Please try again later.';
+      
+      // Check if the error is because score was already submitted
+      if (errorMessage.includes('Score already submitted for this game')) {
+        console.log('Score was already submitted for this game, proceeding to stats');
+        onScoreSubmitted();
+        return;
+      }
+      
       console.error('Error submitting score:', error);
-      alert(error instanceof Error ? error.message : 'Failed to submit score. Please try again later.');
+      alert(errorMessage);
     }
   };
 
