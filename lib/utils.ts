@@ -73,7 +73,7 @@ export async function fetchScoresForCurrentGame() {
     // GraphQL query with error handling
     const query = {
       query: `{ 
-        scoreAddeds(where: { currentGame: ${currentGame.toString()} }) { 
+        scoreAddeds(where: { currentGame_: { equals: "${currentGame.toString()}" } }) { 
           id 
           tokenId 
           user 
@@ -85,7 +85,7 @@ export async function fetchScoresForCurrentGame() {
     };
 
     const response = await fetch(
-      "https://api.studio.thegraph.com/query/94961/wordle31155/version/latest",
+      SUBGRAPH_URL,
       {
         method: "POST",
         headers: {
@@ -97,14 +97,22 @@ export async function fetchScoresForCurrentGame() {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('GraphQL response error:', errorText);
       throw new Error(`GraphQL query failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const responseData = await response.json();
+    console.log("Raw GraphQL Response:", responseData);
     
     // Validate response data
-    if (!responseData.data || !responseData.data.scoreAddeds) {
-      throw new Error('Invalid response format from GraphQL');
+    if (!responseData.data) {
+      console.error('Invalid response format:', responseData);
+      throw new Error('Invalid response format from GraphQL - no data field');
+    }
+
+    if (!responseData.data.scoreAddeds) {
+      console.error('Invalid response format:', responseData);
+      throw new Error('Invalid response format from GraphQL - no scoreAddeds field');
     }
 
     console.log("GraphQL Query Response:", responseData);
