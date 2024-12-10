@@ -3,8 +3,8 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { ethers } from 'ethers'
-import { ethProvider } from '@/lib/provider'
-import { WordleABI } from "../public/contractABI.mjs"; // Adjust the path to match your project structure
+import { ethProvider, baseProvider, getContract } from './provider'
+import { SUBGRAPH_URL } from './constants'
 
 // Combines class names
 export function cn(...inputs: ClassValue[]): string {
@@ -60,23 +60,7 @@ export async function resolveAddress(identifier: string): Promise<string> {
 
 export async function fetchScoresForCurrentGame() {
   try {
-    const RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC_URL;
-    const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
-    
-    // Validate environment variables
-    if (!RPC_URL || !CONTRACT_ADDRESS) {
-      throw new Error('Missing environment variables: RPC_URL or CONTRACT_ADDRESS');
-    }
-
-    // Connect to provider with error handling
-    const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-    await provider.ready; // Ensure provider is connected
-
-    // Initialize contract with validation
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, WordleABI, provider);
-    if (!contract) {
-      throw new Error('Failed to initialize contract');
-    }
+    const contract = getContract();
 
     // Get current game with error handling
     const currentGame = await contract.currentGame().catch((error: any) => {
@@ -101,7 +85,7 @@ export async function fetchScoresForCurrentGame() {
     };
 
     const response = await fetch(
-      "https://api.studio.thegraph.com/query/94961/worldv4/version/latest",
+      "https://api.studio.thegraph.com/query/94961/wordle31155/version/latest",
       {
         method: "POST",
         headers: {
@@ -128,7 +112,97 @@ export async function fetchScoresForCurrentGame() {
 
   } catch (error) {
     console.error("Error fetching scores for the current game:", error);
-    // Rethrow the error with more context
     throw new Error(`Failed to fetch scores: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+export async function getWalletTokenIds(walletAddress: string): Promise<number[]> {
+  try {
+    // First try a test query to verify the endpoint
+    const testQuery = `
+      {
+        _meta {
+          block {
+            number
+          }
+          deployment
+          hasIndexingErrors
+        }
+      }
+    `;
+
+    const testResponse = await fetch(SUBGRAPH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: testQuery
+      }),
+    });
+
+    const testResult = await testResponse.json();
+    console.log('Graph API test response:', testResult);
+
+    // Now query for the tokens
+    const query = `
+      {
+        newUsers(where: { userAddress: "${walletAddress.toLowerCase()}" }) {
+          id
+          tokenId
+          userAddress
+          blockNumber
+          blockTimestamp
+          transactionHash
+        }
+      }
+    `;
+
+    const response = await fetch(SUBGRAPH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch token IDs from The Graph: ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('Graph API response:', result);
+
+    if (result.errors) {
+      throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
+    }
+
+    if (!result.data) {
+      // If no data is returned but also no errors, return empty array
+      console.log('No data returned from The Graph, but no errors. User might not have any tokens.');
+      return [];
+    }
+
+    const tokenIds = result.data.newUsers.map((user: any) => parseInt(user.tokenId));
+    console.log(`Token IDs for wallet ${walletAddress}:`, tokenIds);
+
+    return tokenIds;
+  } catch (error) {
+    console.error('Error getting wallet token IDs:', error);
+    throw error;
+  }
+}
+
+// Function to verify if a wallet has a specific token ID
+export async function verifyWalletHasTokenId(walletAddress: string, tokenId: number): Promise<boolean> {
+  try {
+    const tokenIds = await getWalletTokenIds(walletAddress);
+    return tokenIds.includes(tokenId);
+  } catch (error) {
+    console.error('Error verifying wallet token:', error);
+    throw error;
   }
 }

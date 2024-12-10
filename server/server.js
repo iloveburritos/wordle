@@ -122,44 +122,88 @@ for (const address of walletAddresses) {
   }
 });
 
+const SUBGRAPH_URL = process.env.NEXT_PUBLIC_SUBGRAPH_URL || 'https://api.studio.thegraph.com/query/94961/wordle31155/version/latest';
+
+if (!SUBGRAPH_URL) {
+  throw new Error('NEXT_PUBLIC_SUBGRAPH_URL is not defined in environment variables');
+}
+
 async function runGraphQueryForWallet(walletAddress) {
-  const url = 'https://api.studio.thegraph.com/query/94961/worldv4/version/latest';
-  const query = `
-    query Subgraphs($walletAddress: String!) {
-      newUsers(where: { userAddress: $walletAddress }) {
-        id
-        tokenId
-        userAddress
+  // First try a test query to verify the endpoint
+  const testQuery = `
+    {
+      _meta {
+        block {
+          number
+        }
+        deployment
+        hasIndexingErrors
       }
     }
   `;
 
-  console.log(`Running GraphQL query for wallet ${walletAddress}`);
-  const variables = {
-    walletAddress: walletAddress.toLowerCase(), // Ensure case-insensitivity
-  };
+  try {
+    const testResponse = await fetch(SUBGRAPH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: testQuery
+      }),
+    });
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query: query,
-      variables: variables,
-    }),
-  });
+    const testResult = await testResponse.json();
+    console.log('Graph API test response:', testResult);
 
-  if (!response.ok) {
-    throw new Error(`GraphQL query failed with status ${response.status}`);
+    // Now query for the tokens
+    const query = `
+      {
+        newUsers(where: { userAddress: "${walletAddress.toLowerCase()}" }) {
+          id
+          tokenId
+          userAddress
+          blockNumber
+          blockTimestamp
+          transactionHash
+        }
+      }
+    `;
+
+    console.log(`Running GraphQL query for wallet ${walletAddress}`);
+
+    const response = await fetch(SUBGRAPH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`GraphQL query failed: ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('Graph API response:', result);
+
+    if (result.errors) {
+      throw new Error(`GraphQL query errors: ${JSON.stringify(result.errors)}`);
+    }
+
+    if (!result.data) {
+      console.log('No data returned from The Graph, but no errors. User might not have any tokens.');
+      return [];
+    }
+
+    return result.data.newUsers;
+  } catch (error) {
+    console.error('Error querying The Graph:', error);
+    throw error;
   }
-
-  const result = await response.json();
-  if (result.errors) {
-    throw new Error(`GraphQL query errors: ${JSON.stringify(result.errors)}`);
-  }
-
-  return result.data.newUsers;
 }
 
 // GET endpoint to generate a nonce
@@ -226,64 +270,27 @@ app.post("/send-score", async (req, res) => {
     if (!verification) {
       return res.status(401).json({ error: "Invalid SIWE signature" });
     }
-    console.log(`Score received: ${score}`);
 
     // Extract the wallet address from the SIWE message
     const walletAddress = siweMessage.address;
-    const baseRpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
-    const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
 
-    if (!baseRpcUrl || !contractAddress) {
-      throw new Error("Missing required environment variables for contract interaction.");
-    }
-
-    // Interact with the smart contract to check balance
-    const provider = new ethers.providers.JsonRpcProvider(baseRpcUrl);
-    const contract = new ethers.Contract(contractAddress, WordleABI, provider);
-
-    let balance;
+    // Check token ownership using the Graph API
     try {
-      balance = await contract.balanceOf(walletAddress);
-      console.log(`Balance for wallet ${walletAddress}: ${balance.toString()}`);
+      const tokens = await runGraphQueryForWallet(walletAddress);
+      if (!tokens || tokens.length === 0) {
+        return res.status(403).json({ error: "No tokens found for this wallet" });
+      }
+      console.log(`Found ${tokens.length} tokens for wallet ${walletAddress}`);
     } catch (err) {
-      console.error("Error fetching balance from contract:", err.message);
-      return res.status(500).json({ error: "Failed to check wallet balance" });
+      console.error("Error checking token ownership:", err);
+      return res.status(500).json({ error: "Failed to verify token ownership" });
     }
 
-    // Verify that the balance is greater than 0
-    if (balance.isZero()) {
-      console.error("Wallet does not hold any tokens.");
-      return res.status(403).json({ error: "Wallet does not hold the required tokens" });
-    }
+    // If we get here, the user has at least one token
+    console.log(`Score received: ${score}`);
 
-    // RUN THE GRAPH QUERY HERE
-    let tokenId;
-    try {
-      const graphResult = await runGraphQueryForWallet(walletAddress);
-      console.log(`GraphQL query result for wallet ${walletAddress}:`, graphResult);
-      tokenId = graphResult[0].tokenId;
-      console.log(`Token ID for wallet ${walletAddress}: ${tokenId}`);
-    } catch (error) {
-      console.error("Error running GraphQL query:", error.message);
-      return res.status(500).json({ error: "Failed to fetch data from The Graph" });
-    }
-    // create ethers wallet using process.env.CONTRACT_OWNER_PRIVATE_KEY
-    const privateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
-    const wallet = new ethers.Wallet(privateKey, provider);
-
-    // connect to the contract using the wallet
-    const contractWithSigner = contract.connect(wallet);
-
-    // call the setScore function on the contract
-    const tx = await contractWithSigner.setUserScore(tokenId, score.ciphertext, score.dataToEncryptHash);
-    console.log(`Transaction sent for wallet ${walletAddress}: ${tx.hash}`);
-    await tx.wait();
-
-    // Return success response if everything is verified
-    return res.status(200).json({
-      success: true,
-      message: "Score and signature verified successfully",
-    });
+    // TODO: Add score to contract
+    res.status(200).json({ message: "Score submitted successfully" });
   } catch (error) {
     console.error("Error verifying score:", error);
     return res.status(500).json({

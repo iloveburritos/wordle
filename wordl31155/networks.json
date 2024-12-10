@@ -1,0 +1,8 @@
+{
+  "base-sepolia": {
+    "MyERC1155": {
+      "address": "0x36a74dA23506e80Af8D85EfdE4A6eAB1C6cCc26c",
+      "startBlock": 18959108
+    }
+  }
+}

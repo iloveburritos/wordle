@@ -8,6 +8,7 @@ import { SiweMessage } from 'siwe';
 import { useWallets } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { Loader2 } from 'lucide-react';
+import { useWalletTokens } from '@/hooks/useWalletTokens';
 
 interface SubmitScoreModalProps {
   isOpen: boolean;
@@ -36,8 +37,24 @@ export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, on
   const { wallets } = useWallets();
   const userWallet = wallets[0];
   const grid = renderGrid(gameResult.board);
+  const { tokenIds, loading: loadingTokens, error: tokenError } = useWalletTokens(userWallet?.address);
 
   const handleSubmitScore = async () => {
+    if (loadingTokens) {
+      alert('Please wait while we verify your tokens...');
+      return;
+    }
+
+    if (tokenError) {
+      alert(`Error verifying tokens: ${tokenError.message}`);
+      return;
+    }
+
+    if (tokenIds.length === 0) {
+      alert('You need to have a token to submit a score. Please join or create a group first.');
+      return;
+    }
+
     onSubmitStart();
     try {
       const response = await fetch('http://localhost:3001/generate-nonce', {
@@ -78,18 +95,22 @@ export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, on
           message,
           signature,
           token,
-          score: gameResult.encryptedString,
+          score: {
+            ciphertext: gameResult.encryptedString.ciphertext,
+            dataToEncryptHash: gameResult.encryptedString.dataToEncryptHash
+          }
         }),
       });
 
       if (!apiResponse.ok) {
-        throw new Error('Failed to send score');
+        const errorData = await apiResponse.json();
+        throw new Error(errorData.error || 'Failed to send score');
       }
 
       onScoreSubmitted();
     } catch (error) {
       console.error('Error submitting score:', error);
-      alert('Failed to submit score. Please try again later.');
+      alert(error instanceof Error ? error.message : 'Failed to submit score. Please try again later.');
     }
   };
 
@@ -104,12 +125,17 @@ export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, on
         <DialogFooter className="sm:justify-start">
           <Button 
             onClick={handleSubmitScore} 
-            disabled={isSubmitting}
+            disabled={isSubmitting || loadingTokens}
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Submitting...
+              </>
+            ) : loadingTokens ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Verifying tokens...
               </>
             ) : (
               'Submit Score'
