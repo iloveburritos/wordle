@@ -159,10 +159,10 @@ async function runGraphQueryForWallet(walletAddress) {
     // Now query for the tokens
     const query = `
       {
-        newUsers(where: { userAddress: "${walletAddress.toLowerCase()}" }) {
+        newUsers(where: { user: "${walletAddress.toLowerCase()}" }) {
           id
           tokenId
-          userAddress
+          user
           blockNumber
           blockTimestamp
           transactionHash
@@ -199,7 +199,13 @@ async function runGraphQueryForWallet(walletAddress) {
       return [];
     }
 
-    return result.data.newUsers;
+    // Convert BigInt tokenId to Number
+    const users = result.data.newUsers.map(user => ({
+      ...user,
+      tokenId: Number(user.tokenId)
+    }));
+
+    return users;
   } catch (error) {
     console.error('Error querying The Graph:', error);
     throw error;

@@ -118,42 +118,39 @@ export async function fetchScoresForCurrentGame() {
 
 export async function getWalletTokenIds(walletAddress: string): Promise<number[]> {
   try {
-    // First try a test query to verify the endpoint
-    const testQuery = `
+    console.log('Using Graph API URL:', SUBGRAPH_URL);
+    
+    // Try a simple query first to verify connection
+    const simpleQuery = `
       {
-        _meta {
-          block {
-            number
-          }
-          deployment
-          hasIndexingErrors
+        newUsers(first: 5) {
+          id
+          tokenId
+          user
         }
       }
     `;
 
-    const testResponse = await fetch(SUBGRAPH_URL, {
+    const simpleResponse = await fetch(SUBGRAPH_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: testQuery
+        query: simpleQuery
       }),
     });
+    
+    const simpleResult = await simpleResponse.json();
+    console.log('Simple query response:', simpleResult);
 
-    const testResult = await testResponse.json();
-    console.log('Graph API test response:', testResult);
-
-    // Now query for the tokens
+    // Now query for the specific user's tokens
     const query = `
       {
-        newUsers(where: { userAddress: "${walletAddress.toLowerCase()}" }) {
+        newUsers(where: { user: "${walletAddress.toLowerCase()}" }) {
           id
           tokenId
-          userAddress
-          blockNumber
-          blockTimestamp
-          transactionHash
+          user
         }
       }
     `;
@@ -164,29 +161,24 @@ export async function getWalletTokenIds(walletAddress: string): Promise<number[]
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query,
+        query
       }),
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to fetch token IDs from The Graph: ${errorText}`);
-    }
 
     const result = await response.json();
     console.log('Graph API response:', result);
 
     if (result.errors) {
+      console.error('GraphQL errors:', result.errors);
       throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
     }
 
-    if (!result.data) {
-      // If no data is returned but also no errors, return empty array
-      console.log('No data returned from The Graph, but no errors. User might not have any tokens.');
+    if (!result.data?.newUsers) {
+      console.log(`No tokens found for wallet ${walletAddress}`);
       return [];
     }
 
-    const tokenIds = result.data.newUsers.map((user: any) => parseInt(user.tokenId));
+    const tokenIds = result.data.newUsers.map((user: any) => Number(user.tokenId));
     console.log(`Token IDs for wallet ${walletAddress}:`, tokenIds);
 
     return tokenIds;

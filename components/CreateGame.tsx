@@ -34,6 +34,7 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
         contractAddress,
         [
           'function registerMinter()',
+          'function mint(address account, uint256 tokenId, bytes data)',
           'event NewGroup(uint256 indexed tokenId, address indexed minter)'
         ],
         signer
@@ -46,8 +47,28 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
         }
       })
 
-      const tx = await contract.registerMinter()
-      await tx.wait()
+      // First register as minter
+      const registerTx = await contract.registerMinter()
+      const registerReceipt = await registerTx.wait()
+
+      // Get the NewGroup event from the receipt to get the tokenId
+      const newGroupEvent = registerReceipt.events?.find(
+        (event: any) => event.event === 'NewGroup'
+      )
+      
+      if (!newGroupEvent) {
+        throw new Error('NewGroup event not found in transaction receipt')
+      }
+
+      const newTokenId = newGroupEvent.args.tokenId
+
+      // Then mint a token for the user using the tokenId from the event
+      const mintTx = await contract.mint(
+        user.wallet.address,
+        newTokenId,
+        "0x" // Empty bytes as data
+      )
+      await mintTx.wait()
       
     } catch (error) {
       console.error('Error creating group:', error)
