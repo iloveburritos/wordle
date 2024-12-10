@@ -1,31 +1,41 @@
 import React from 'react';
-import { LetterState, GameBoard } from '@/lib/types';
+import { LetterState } from '../lib/types';
 
 interface GameResultGridProps {
-  board: GameBoard;
+  board: {
+    letter: string;
+    state: LetterState;
+  }[][];
 }
 
-const GameResultGrid: React.FC<GameResultGridProps> = ({ board }) => {
+export default function GameResultGrid({ board }: GameResultGridProps) {
+  const getStateEmoji = (state: LetterState) => {
+    switch (state) {
+      case LetterState.CORRECT:
+        return '🟩';
+      case LetterState.PRESENT:
+        return '🟨';
+      case LetterState.ABSENT:
+        return '⬛';
+      default:
+        return '⬜';
+    }
+  };
+
   return (
-    <div className="grid gap-[2px]" style={{ gridTemplateRows: `repeat(${board.length}, 1fr)` }}>
+    <div className="grid grid-rows-6 gap-1 w-fit mx-auto">
       {board.map((row, rowIndex) => (
-        <div key={rowIndex} className="grid grid-cols-5 gap-[2px]">
-          {row.map((tile, colIndex) => (
+        <div key={rowIndex} className="grid grid-cols-5 gap-1">
+          {row.map((cell, colIndex) => (
             <div
               key={`${rowIndex}-${colIndex}`}
-              className={`
-                w-5 h-5 flex items-center justify-center text-xs
-                ${tile.state === LetterState.CORRECT ? 'bg-green-500' : ''}
-                ${tile.state === LetterState.PRESENT ? 'bg-yellow-500' : ''}
-                ${tile.state === LetterState.ABSENT ? 'bg-gray-500' : ''}
-                ${tile.state === LetterState.INITIAL ? 'bg-gray-200' : ''}
-              `}
-            />
+              className="w-8 h-8 flex items-center justify-center text-lg"
+            >
+              {getStateEmoji(cell.state)}
+            </div>
           ))}
         </div>
       ))}
     </div>
   );
-};
-
-export default GameResultGrid; 
+} 

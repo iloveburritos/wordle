@@ -58,25 +58,31 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
         throw new Error("You need to be part of a group to view stats");
       }
 
+      console.log('User token IDs:', userTokenIds);
+
       // Fetch current game scores
       const stats = await fetchScoresForCurrentGame();
       const userSigner = await userWallet.getEthereumProvider();
       const provider = new ethers.providers.Web3Provider(userSigner);
       const signer = provider.getSigner();
 
+      if (!stats.data?.scoreAddeds) {
+        throw new Error("No scores found for the current game");
+      }
+
+      console.log('All scores:', stats.data.scoreAddeds);
+
       const decryptedResults: DecryptedResult[] = [];
       
-      // Filter scores for user's groups and current game
-      const relevantScores = stats.data?.scoreAddeds?.filter(
-        (score: ScoreAdded) => userTokenIds.includes(Number(score.gameId))
-      ) || [];
-
+      // Get all scores for the current game
+      const relevantScores = stats.data.scoreAddeds;
       console.log('Relevant scores:', relevantScores);
 
       let processedCount = 0;
       for (const entry of relevantScores) {
         const { gameId, ciphertext, datatoencrypthash, user, blockTimestamp } = entry;
         try {
+          console.log(`Attempting to decrypt score for user ${user}`);
           let retryCount = 0;
           let decryptedString: string | undefined;
           
@@ -88,8 +94,10 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
                 signer,
                 "baseSepolia"
               );
+              console.log('Raw decrypted string:', decryptedString);
               break;
             } catch (decryptError) {
+              console.error(`Decryption attempt ${retryCount + 1} failed:`, decryptError);
               retryCount++;
               if (retryCount < 3) {
                 await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
@@ -109,6 +117,8 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
             dataToEncryptHash: datatoencrypthash 
           });
 
+          console.log('Converted game board:', gameBoard);
+
           decryptedResults.push({ 
             tokenId: gameId, 
             score: gameBoard, 
@@ -119,34 +129,17 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
           processedCount++;
           setDecryptionProgress(Math.floor((processedCount / relevantScores.length) * 100));
         } catch (error) {
-          console.error(`Decryption error for gameId ${gameId}:`, error);
+          console.error(`Decryption error for user ${user}:`, error);
           processedCount++;
           setDecryptionProgress(Math.floor((processedCount / relevantScores.length) * 100));
           continue;
         }
       }
 
-      // If no scores found but user has tokens, create an empty result set for their groups
-      if (decryptedResults.length === 0) {
-        userTokenIds.forEach((tokenId: number) => {
-          decryptedResults.push({
-            tokenId: tokenId.toString(),
-            score: Array(6).fill(null).map(() => 
-              Array(5).fill(null).map(() => ({ letter: '', state: LetterState.INITIAL }))
-            ),
-            user: userWallet.address,
-            timestamp: Date.now()
-          });
-        });
-      }
+      console.log('Final decrypted results:', decryptedResults);
 
-      // Sort results by group and timestamp
-      decryptedResults.sort((a, b) => {
-        if (a.tokenId === b.tokenId) {
-          return b.timestamp - a.timestamp; // Most recent first within same group
-        }
-        return Number(a.tokenId) - Number(b.tokenId); // Group order
-      });
+      // Sort results by timestamp
+      decryptedResults.sort((a, b) => b.timestamp - a.timestamp); // Most recent first
 
       const queryString = encodeURIComponent(JSON.stringify(decryptedResults));
       router.push(`/results?stats=${queryString}`);
