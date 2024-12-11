@@ -17,7 +17,7 @@ import {
     try {
       const evmContractConditions: EvmContractConditions = [
           {
-            contractAddress: "0x7e1676B4A9dF0B27A70614B9A8058e289872071c",
+            contractAddress: "0x36a74dA23506e80Af8D85EfdE4A6eAB1C6cCc26c",
             functionName: "isAllowed",
             functionParams: [":userAddress"],
             functionAbi: {
@@ -85,7 +85,7 @@ import {
     try {
       const evmContractConditions: EvmContractConditions = [
           {
-            contractAddress: "0x7e1676B4A9dF0B27A70614B9A8058e289872071c",
+            contractAddress: "0x36a74dA23506e80Af8D85EfdE4A6eAB1C6cCc26c",
             functionName: "isAllowed",
             functionParams: [":userAddress"],
             functionAbi: {
