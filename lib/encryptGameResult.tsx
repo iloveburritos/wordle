@@ -10,6 +10,8 @@ export interface EncryptedResult {
 }
 
 export async function encryptGameResult(board: GameBoard): Promise<EncryptedResult> {
+  console.log('Original game board:', board);
+  
   const encryptionMap: { [key in LetterState]: string } = {
     [LetterState.CORRECT]: 'G',
     [LetterState.PRESENT]: 'Y',
@@ -21,16 +23,34 @@ export async function encryptGameResult(board: GameBoard): Promise<EncryptedResu
   const lastCompletedRowIndex = board.findIndex(row => row.some(tile => tile.state === LetterState.INITIAL));
   const completedRows = lastCompletedRowIndex === -1 ? board : board.slice(0, lastCompletedRowIndex);
 
+  console.log('Completed rows before encryption:', completedRows);
+
   // Flatten only the completed rows and map to encrypted characters
   const encryptedString = completedRows
     .flat()
-    .map(tile => encryptionMap[tile.state])
+    .map(tile => {
+      const mappedChar = encryptionMap[tile.state];
+      if (!mappedChar) {
+        console.error('Invalid state encountered:', tile.state);
+        return 'X'; // fallback
+      }
+      return mappedChar;
+    })
     .join('');
 
-  console.log('Encrypting game result:', encryptedString);
+  console.log('String to be encrypted:', encryptedString);
+  console.log('String length:', encryptedString.length);
+  console.log('Character breakdown:', encryptedString.split('').map(char => `'${char}'`).join(', '));
+
   const encryptedResult = await encryptStringWithContractConditions(encryptedString);
   if (!encryptedResult) {
     throw new Error('Encryption failed');
   }
+  
+  console.log('Encrypted result:', {
+    ciphertext: encryptedResult.ciphertext.substring(0, 20) + '...',
+    dataToEncryptHash: encryptedResult.dataToEncryptHash
+  });
+  
   return encryptedResult;
 }

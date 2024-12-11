@@ -36,3 +36,6 @@ export const enum LetterState {
     encryptedSymmetricKey?: string;
     dataToEncryptHash?: string;
   }
+
+  // Update the return type for decryptGameResult
+  export type DecryptedString = string;

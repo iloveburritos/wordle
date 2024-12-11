@@ -12,8 +12,9 @@ import { useWallets } from '@privy-io/react-auth';
 
 interface PlayerStat {
   tokenId: string;
-  score: GameBoard;
+  score: GameBoard;  // This is already the decrypted and converted game board
   user: string;
+  timestamp: number;
 }
 
 interface GroupedStats {
@@ -38,7 +39,7 @@ export default function Results() {
       try {
         const decodedStats = JSON.parse(decodeURIComponent(statsParam)) as PlayerStat[];
         
-        // Group stats by tokenId
+        // Group stats by tokenId - no need for decryption/conversion since it's already done
         const grouped = decodedStats.reduce((acc: GroupedStats, stat) => {
           if (!acc[stat.tokenId]) {
             acc[stat.tokenId] = [];

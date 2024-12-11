@@ -22,14 +22,19 @@ export default function GameResultGrid({ board }: GameResultGridProps) {
     }
   };
 
+  // Filter out empty rows (rows where all states are INITIAL)
+  const completedRows = board.filter(row => 
+    row.some(cell => cell.state !== LetterState.INITIAL)
+  );
+
   return (
-    <div className="grid grid-rows-6 gap-1 w-fit mx-auto">
-      {board.map((row, rowIndex) => (
-        <div key={rowIndex} className="grid grid-cols-5 gap-1">
+    <div className="flex flex-col">
+      {completedRows.map((row, rowIndex) => (
+        <div key={rowIndex} className="flex">
           {row.map((cell, colIndex) => (
             <div
               key={`${rowIndex}-${colIndex}`}
-              className="w-8 h-8 flex items-center justify-center text-lg"
+              className="text-lg leading-none"
             >
               {getStateEmoji(cell.state)}
             </div>

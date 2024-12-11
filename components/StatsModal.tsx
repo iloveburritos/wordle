@@ -13,6 +13,7 @@ import { decryptStringWithContractConditions } from '@/lib/litUtils';
 import { Loader2 } from 'lucide-react';
 import { GameBoard, LetterState } from '@/lib/types';
 import { decryptGameResult } from '@/lib/decryptGameResult';
+import { stringToGameBoard } from '@/lib/stringToGameBoard';
 
 interface StatsModalProps {
   isOpen: boolean;
@@ -111,11 +112,9 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
             throw new Error('Failed to decrypt score');
           }
 
-          // Convert the decrypted string to a game board
-          const gameBoard = decryptGameResult({ 
-            ciphertext: decryptedString, 
-            dataToEncryptHash: datatoencrypthash 
-          });
+          // The decryptedString is already in the format 'G', 'Y', 'X'
+          // We just need to convert it directly to a game board
+          const gameBoard = stringToGameBoard(decryptedString);
 
           console.log('Converted game board:', gameBoard);
 
