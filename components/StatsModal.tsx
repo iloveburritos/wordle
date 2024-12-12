@@ -28,10 +28,10 @@ interface DecryptedResult {
 }
 
 interface ScoreAdded {
-  gameId: string;
+  tokenId: string;
+  encryptedScore: string;
+  hashScore: string;
   user: string;
-  ciphertext: string;
-  datatoencrypthash: string;
   blockTimestamp: string;
 }
 
@@ -53,93 +53,112 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
         throw new Error("Please connect your wallet first");
       }
 
-      // Get user's token IDs
+      // 1. Get current game ID from smart contract
+      const provider = new ethers.providers.Web3Provider(await userWallet.getEthereumProvider());
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(
+        "0x36a74dA23506e80Af8D85EfdE4A6eAB1C6cCc26c",
+        ["function currentGame() view returns (uint256)"],
+        signer
+      );
+      const currentGameId = await contract.currentGame();
+      console.log("Current game ID:", currentGameId.toString());
+
+      // 2. Get user's token IDs from newUser events
       const userTokenIds = await getWalletTokenIds(userWallet.address);
       if (!userTokenIds || userTokenIds.length === 0) {
         throw new Error("You need to be part of a group to view stats");
       }
+      console.log("User token IDs:", userTokenIds);
 
-      console.log('User token IDs:', userTokenIds);
+      // 3. Fetch score submissions for the current game
+      const query = `{
+        scoreAddeds(
+          where: {
+            gameId: "${currentGameId.toString()}"
+          }
+        ) {
+          id
+          gameId
+          user
+          ciphertext
+          datatoencrypthash
+          blockTimestamp
+          transactionHash
+        }
+      }`;
 
-      // Fetch current game scores
-      const stats = await fetchScoresForCurrentGame();
-      const userSigner = await userWallet.getEthereumProvider();
-      const provider = new ethers.providers.Web3Provider(userSigner);
-      const signer = provider.getSigner();
+      const response = await fetch('https://api.studio.thegraph.com/query/94961/wordl31155/version/latest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
 
-      if (!stats.data?.scoreAddeds) {
+      const { data } = await response.json();
+      if (!data?.scoreAddeds) {
         throw new Error("No scores found for the current game");
       }
 
-      console.log('All scores:', stats.data.scoreAddeds);
+      console.log("Retrieved scores from subgraph:", data.scoreAddeds);
 
-      const decryptedResults: DecryptedResult[] = [];
+      // 4. Decrypt scores using Lit Protocol
+      const decryptedResults = [];
+      const totalScores = data.scoreAddeds.length;
       
-      // Get all scores for the current game
-      const relevantScores = stats.data.scoreAddeds;
-      console.log('Relevant scores:', relevantScores);
-
-      let processedCount = 0;
-      for (const entry of relevantScores) {
-        const { gameId, ciphertext, datatoencrypthash, user, blockTimestamp } = entry;
+      for (const [index, entry] of data.scoreAddeds.entries()) {
         try {
-          console.log(`Attempting to decrypt score for user ${user}`);
-          let retryCount = 0;
-          let decryptedString: string | undefined;
+          setDecryptionProgress(Math.floor((index / totalScores) * 100));
           
-          while (retryCount < 3) {
-            try {
-              decryptedString = await decryptStringWithContractConditions(
-                ciphertext,
-                datatoencrypthash,
-                signer,
-                "baseSepolia"
-              );
-              console.log('Raw decrypted string:', decryptedString);
-              break;
-            } catch (decryptError) {
-              console.error(`Decryption attempt ${retryCount + 1} failed:`, decryptError);
-              retryCount++;
-              if (retryCount < 3) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-                continue;
-              }
-              throw decryptError;
-            }
+          console.log(`Processing score ${index + 1}/${totalScores} for user ${entry.user}`);
+
+          // Skip if missing encryption data
+          if (!entry.ciphertext || !entry.datatoencrypthash) {
+            console.warn(`Missing encryption data for user ${entry.user}`);
+            continue;
           }
+
+          // Decrypt the score
+          const decryptedString = await decryptStringWithContractConditions(
+            entry.ciphertext,
+            entry.datatoencrypthash,
+            signer,
+            "baseSepolia"
+          );
 
           if (!decryptedString) {
-            throw new Error('Failed to decrypt score');
+            console.warn(`Decryption failed for user ${entry.user}`);
+            continue;
           }
 
-          // The decryptedString is already in the format 'G', 'Y', 'X'
-          // We just need to convert it directly to a game board
+          // Convert decrypted string to game board
           const gameBoard = stringToGameBoard(decryptedString);
+          console.log(`Successfully decrypted score for user ${entry.user}:`, gameBoard);
 
-          console.log('Converted game board:', gameBoard);
-
-          decryptedResults.push({ 
-            tokenId: gameId, 
-            score: gameBoard, 
-            user,
-            timestamp: parseInt(blockTimestamp)
+          decryptedResults.push({
+            tokenId: entry.gameId,
+            score: gameBoard,
+            user: entry.user,
+            timestamp: parseInt(entry.blockTimestamp)
           });
-
-          processedCount++;
-          setDecryptionProgress(Math.floor((processedCount / relevantScores.length) * 100));
         } catch (error) {
-          console.error(`Decryption error for user ${user}:`, error);
-          processedCount++;
-          setDecryptionProgress(Math.floor((processedCount / relevantScores.length) * 100));
+          console.error(`Error processing score for user ${entry.user}:`, error);
           continue;
         }
       }
 
-      console.log('Final decrypted results:', decryptedResults);
+      setDecryptionProgress(100);
 
-      // Sort results by timestamp
-      decryptedResults.sort((a, b) => b.timestamp - a.timestamp); // Most recent first
+      // 5. Handle results
+      if (decryptedResults.length === 0) {
+        throw new Error("Could not decrypt any scores");
+      }
 
+      // Sort by timestamp (most recent first)
+      decryptedResults.sort((a, b) => b.timestamp - a.timestamp);
+      
+      console.log("Final decrypted results:", decryptedResults);
+      
+      // 6. Navigate to results page
       const queryString = encodeURIComponent(JSON.stringify(decryptedResults));
       router.push(`/results?stats=${queryString}`);
     } catch (error) {

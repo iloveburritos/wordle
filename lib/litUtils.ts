@@ -81,49 +81,41 @@ import {
     chain: string,
   ) => {
     let litNodeClient: LitNodeClient;
-  
+
     try {
-      const evmContractConditions: EvmContractConditions = [
-          {
-            contractAddress: "0x36a74dA23506e80Af8D85EfdE4A6eAB1C6cCc26c",
-            functionName: "isAllowed",
-            functionParams: [":userAddress"],
-            functionAbi: {
-              type: "function",
-              stateMutability: "view",
-              outputs: [
-                {
-                  type: "bool",
-                  name: "",
-                  internalType: "bool",
-                },
-              ],
-              name: "isAllowed",
-              inputs: [
-                {
-                  type: "address",
-                  name: "wallet",
-                  internalType: "address",
-                },
-              ],
-            },
-            chain: "baseSepolia",
-            returnValueTest: {
-              key: "",
-              comparator: "=",
-              value: "true",
-            },
-          },
-        ];
-      console.log("🔄 Connecting to Lit network...");
+      console.log("🔄 Initializing Lit client...");
       litNodeClient = new LitNodeClient({
         litNetwork: LIT_NETWORK.DatilTest,
         debug: true,
       });
+
+      console.log("🔄 Connecting to Lit network...");
       await litNodeClient.connect();
       console.log("✅ Connected to Lit network");
-  
-      console.log("🔄 Getting EOA Session Sigs...");
+
+      // Access control conditions for the Wordle game contract
+      const evmContractConditions = [
+        {
+          contractAddress: "0x36a74dA23506e80Af8D85EfdE4A6eAB1C6cCc26c",
+          functionName: "isAllowed",
+          functionParams: [":userAddress"],
+          functionAbi: {
+            type: "function",
+            stateMutability: "view",
+            outputs: [{ type: "bool", name: "", internalType: "bool" }],
+            name: "isAllowed",
+            inputs: [{ type: "address", name: "wallet", internalType: "address" }],
+          },
+          chain: "baseSepolia",
+          returnValueTest: {
+            key: "",
+            comparator: "=",
+            value: "true",
+          },
+        },
+      ];
+
+      console.log("🔄 Getting session signatures...");
       const sessionSigs = await litNodeClient.getSessionSigs({
         chain,
         expiration: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
@@ -136,26 +128,25 @@ import {
         authNeededCallback: async ({
           resourceAbilityRequests,
           expiration,
-          uri,
-        }) => {
-          const toSign = await createSiweMessageWithRecaps({
-            uri: uri!,
-            expiration: expiration!,
-            resources: resourceAbilityRequests!,
-            walletAddress: await wallet.getAddress(),
-            nonce: await litNodeClient.getLatestBlockhash(),
-            litNodeClient,
-          });
-  
-          return await generateAuthSig({
-            signer: wallet,
-            toSign,
-          });
-        },
-      });
-      console.log("✅ Got EOA Session Sigs");
-  
-      console.log("🔄 Decrypting to file...");
+          uri,}) => {
+            const toSign = await createSiweMessageWithRecaps({
+              uri: uri!,
+              expiration: expiration!,
+              resources: resourceAbilityRequests!,
+              walletAddress: await wallet.getAddress(),
+              nonce: await litNodeClient.getLatestBlockhash(),
+              litNodeClient,
+            });
+    
+            return await generateAuthSig({
+              signer: wallet,
+              toSign,
+            });
+          },
+        });
+        console.log("✅ Got EOA Session Sigs");
+      console.log("✅ Got session signatures, starting decryption...");
+      
       const decryptedString = await decryptToString(
         {
           ciphertext,
@@ -166,6 +157,7 @@ import {
         },
         litNodeClient
       );
+
       console.log("✅ Decrypted file");
   
       if (decryptedString) {

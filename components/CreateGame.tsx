@@ -94,26 +94,35 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
         <div className="grid gap-4 py-4">
           {tokenId ? (
             <div className="text-center">
-              <p className="text-green-500 font-semibold mb-4">Successfully Registered!</p>
-              <p>Your Token ID: {tokenId}</p>
-              <Button onClick={handleClose} className="mt-4">Close</Button>
+              <p className="text-lg mb-4">
+                Game created! Your game tokenId is <span className="font-semibold">{tokenId}</span>. 
+                Use this tokenId to invite friends to the game.
+              </p>
+              <Button onClick={handleClose} className="mt-4">Done</Button>
             </div>
           ) : (
             <>
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-              <Button 
-                onClick={handleCreateGroup}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  'Create Group'
-                )}
-              </Button>
+              {error && (
+                <div className="text-center">
+                  <p className="text-red-500 mb-4">Error creating game: {error}</p>
+                  <Button onClick={handleClose}>Done</Button>
+                </div>
+              )}
+              {!error && (
+                <Button 
+                  onClick={handleCreateGroup}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Group'
+                  )}
+                </Button>
+              )}
             </>
           )}
         </div>
