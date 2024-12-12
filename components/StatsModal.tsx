@@ -20,11 +20,46 @@ interface StatsModalProps {
   onClose: () => void;
 }
 
+interface NewUserEntry {
+  id: string;
+  user: string;
+  tokenId: string;
+}
+
+interface ScoreEntry {
+  [x: string]: any;
+  id: string;
+  user: string;
+  ciphertext: string;
+  datatoencrypthash: string;
+  blockTimestamp: string;
+  transactionHash: string;
+}
+
+interface WalletsByTokenId {
+  [tokenId: string]: Set<string>;
+}
+
+interface ScoresByTokenId {
+  [tokenId: string]: ScoreEntry[];
+}
+
 interface DecryptedResult {
   tokenId: string;
   score: GameBoard;
   user: string;
   timestamp: number;
+}
+
+interface ResultsByGroup {
+  [tokenId: string]: DecryptedResult[];
+}
+
+interface SubgraphResponse {
+  data?: {
+    newUsers?: NewUserEntry[];
+    scoreAddeds?: ScoreEntry[];
+  };
 }
 
 interface ScoreAdded {
@@ -62,21 +97,95 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
         signer
       );
       const currentGameId = await contract.currentGame();
-      console.log("Current game ID:", currentGameId.toString());
+      console.log("Current game ID from contract:", currentGameId.toString());
 
-      // 2. Get user's token IDs from newUser events
+      // 2. Get user's token IDs
       const userTokenIds = await getWalletTokenIds(userWallet.address);
       if (!userTokenIds || userTokenIds.length === 0) {
         throw new Error("You need to be part of a group to view stats");
       }
       console.log("User token IDs:", userTokenIds);
 
-      // 3. Fetch score submissions for the current game
-      const query = `{
+      // 3. Get all wallet addresses that share the same tokenIds
+      const walletQuery = `{
+        newUsers(where: {
+          tokenId_in: ${JSON.stringify(userTokenIds.map(String))}
+        }) {
+          id
+          user
+          tokenId
+        }
+      }`;
+
+      console.log("Querying wallets with shared tokenIds:", walletQuery);
+      
+      const walletsResponse = await fetch('https://api.studio.thegraph.com/query/94961/wordl31155/version/latest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: walletQuery }),
+      });
+
+      if (!walletsResponse.ok) {
+        throw new Error(`Failed to fetch wallets: ${walletsResponse.statusText}`);
+      }
+
+      const walletsData: SubgraphResponse = await walletsResponse.json();
+      console.log("Raw wallets response:", walletsData);
+
+      if (!walletsData?.data) {
+        throw new Error("Invalid response from subgraph when fetching wallets");
+      }
+
+      if (!walletsData.data.newUsers || walletsData.data.newUsers.length === 0) {
+        throw new Error("No users found in your groups");
+      }
+
+      // Group wallets by tokenId
+      const walletsByTokenId = walletsData.data.newUsers.reduce((acc: WalletsByTokenId, entry: NewUserEntry) => {
+        if (!acc[entry.tokenId]) {
+          acc[entry.tokenId] = new Set<string>();
+        }
+        acc[entry.tokenId].add(entry.user.toLowerCase());
+        return acc;
+      }, {} as WalletsByTokenId);
+
+      console.log("Grouped wallets by token ID:", walletsByTokenId);
+
+      // 4. Get scores for current game from these wallets
+      const walletAddresses = Object.values(walletsByTokenId)
+        .flatMap(wallets => Array.from(wallets as Set<string>));
+
+      console.log("Wallet addresses for score query:", walletAddresses);
+
+      // First, let's verify if there are any scores at all for the current game
+      const verificationQuery = `{
+        scoreAddeds(where: { gameId: "${currentGameId.toString()}" }) {
+          id
+          gameId
+          user
+        }
+      }`;
+
+      console.log("Verifying scores exist for current game:", verificationQuery);
+      
+      const verificationResponse = await fetch('https://api.studio.thegraph.com/query/94961/wordl31155/version/latest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: verificationQuery }),
+      });
+
+      const verificationData = await verificationResponse.json();
+      console.log("Verification response:", verificationData);
+
+      // Now query for scores from our wallet group
+      const scoresQuery = `{
         scoreAddeds(
           where: {
             gameId: "${currentGameId.toString()}"
+            user_in: ${JSON.stringify(walletAddresses)}
           }
+          orderBy: blockTimestamp
+          orderDirection: desc
         ) {
           id
           gameId
@@ -88,32 +197,72 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
         }
       }`;
 
-      const response = await fetch('https://api.studio.thegraph.com/query/94961/wordl31155/version/latest', {
+      console.log("Querying scores for current game:", scoresQuery);
+
+      const scoresResponse = await fetch('https://api.studio.thegraph.com/query/94961/wordl31155/version/latest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query: scoresQuery }),
       });
 
-      const { data } = await response.json();
-      if (!data?.scoreAddeds) {
-        throw new Error("No scores found for the current game");
+      if (!scoresResponse.ok) {
+        throw new Error(`Failed to fetch scores: ${scoresResponse.statusText}`);
       }
 
-      console.log("Retrieved scores from subgraph:", data.scoreAddeds);
+      const scoresData: SubgraphResponse = await scoresResponse.json();
+      console.log("Raw scores response:", scoresData);
 
-      // 4. Decrypt scores using Lit Protocol
-      const decryptedResults = [];
+      if (!scoresData?.data) {
+        throw new Error("Invalid response from subgraph when fetching scores");
+      }
+
+      const { data } = scoresData;
+      if (!data.scoreAddeds || data.scoreAddeds.length === 0) {
+        throw new Error("No scores found for the current game in your groups");
+      }
+
+      // Log each score's data
+      data.scoreAddeds.forEach((score, index) => {
+        console.log(`Score ${index + 1}:`, {
+          gameId: score.gameId,
+          user: score.user,
+          hasEncryption: Boolean(score.ciphertext && score.datatoencrypthash)
+        });
+      });
+
+      // Validate score data structure
+      const invalidScores = data.scoreAddeds.filter(
+        score => !score.id || !score.user || !score.ciphertext || !score.datatoencrypthash || !score.blockTimestamp
+      );
+      if (invalidScores.length > 0) {
+        console.error("Found invalid score entries:", invalidScores);
+        throw new Error("Invalid score data received from subgraph");
+      }
+
+      console.log("Retrieved valid scores:", data.scoreAddeds);
+
+      // 5. Decrypt scores using Lit Protocol
+      const decryptedResults: DecryptedResult[] = [];
       const totalScores = data.scoreAddeds.length;
       
       for (const [index, entry] of data.scoreAddeds.entries()) {
         try {
           setDecryptionProgress(Math.floor((index / totalScores) * 100));
           
-          console.log(`Processing score ${index + 1}/${totalScores} for user ${entry.user}`);
+          // Find which tokenId this wallet belongs to
+          const tokenId = Object.entries(walletsByTokenId)
+            .find(([_, wallets]) => (wallets as Set<string>).has(entry.user.toLowerCase()))?.[0];
+            
+          if (!tokenId) {
+            console.warn(`Could not find tokenId for user ${entry.user}`);
+            continue;
+          }
+
+          console.log(`Processing score ${index + 1}/${totalScores} for user ${entry.user} in group ${tokenId}`);
 
           // Skip if missing encryption data
           if (!entry.ciphertext || !entry.datatoencrypthash) {
-            console.warn(`Missing encryption data for user ${entry.user}`);
+            console.warn(`Missing encryption data for user ${entry.user} in group ${tokenId}`);
             continue;
           }
 
@@ -126,16 +275,16 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
           );
 
           if (!decryptedString) {
-            console.warn(`Decryption failed for user ${entry.user}`);
+            console.warn(`Decryption failed for user ${entry.user} in group ${tokenId}`);
             continue;
           }
 
           // Convert decrypted string to game board
           const gameBoard = stringToGameBoard(decryptedString);
-          console.log(`Successfully decrypted score for user ${entry.user}:`, gameBoard);
+          console.log(`Successfully decrypted score for user ${entry.user} in group ${tokenId}:`, gameBoard);
 
           decryptedResults.push({
-            tokenId: entry.gameId,
+            tokenId,
             score: gameBoard,
             user: entry.user,
             timestamp: parseInt(entry.blockTimestamp)
@@ -148,7 +297,7 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
 
       setDecryptionProgress(100);
 
-      // 5. Handle results
+      // 6. Handle results
       if (decryptedResults.length === 0) {
         throw new Error("Could not decrypt any scores");
       }
@@ -156,10 +305,27 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
       // Sort by timestamp (most recent first)
       decryptedResults.sort((a, b) => b.timestamp - a.timestamp);
       
-      console.log("Final decrypted results:", decryptedResults);
+      // Group by tokenId for display purposes
+      const resultsByGroup = decryptedResults.reduce((acc: ResultsByGroup, result: DecryptedResult) => {
+        if (!acc[result.tokenId]) {
+          acc[result.tokenId] = [];
+        }
+        acc[result.tokenId].push(result);
+        return acc;
+      }, {} as ResultsByGroup);
       
-      // 6. Navigate to results page
-      const queryString = encodeURIComponent(JSON.stringify(decryptedResults));
+      console.log("Final decrypted results:", {
+        allResults: decryptedResults,
+        byGroup: resultsByGroup,
+        currentGame: currentGameId.toString()
+      });
+      
+      // 7. Navigate to results page with all scores
+      const queryString = encodeURIComponent(JSON.stringify({
+        results: decryptedResults,
+        groupedResults: resultsByGroup,
+        currentGameId: currentGameId.toString()
+      }));
       router.push(`/results?stats=${queryString}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
