@@ -27,7 +27,6 @@ interface NewUserEntry {
 }
 
 interface ScoreEntry {
-  [x: string]: any;
   id: string;
   user: string;
   ciphertext: string;
@@ -97,7 +96,7 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
         signer
       );
       const currentGameId = await contract.currentGame();
-      console.log("Current game ID from contract:", currentGameId.toString());
+      console.log("Current game ID:", currentGameId.toString());
 
       // 2. Get user's token IDs
       const userTokenIds = await getWalletTokenIds(userWallet.address);
@@ -125,18 +124,8 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
         body: JSON.stringify({ query: walletQuery }),
       });
 
-      if (!walletsResponse.ok) {
-        throw new Error(`Failed to fetch wallets: ${walletsResponse.statusText}`);
-      }
-
       const walletsData: SubgraphResponse = await walletsResponse.json();
-      console.log("Raw wallets response:", walletsData);
-
-      if (!walletsData?.data) {
-        throw new Error("Invalid response from subgraph when fetching wallets");
-      }
-
-      if (!walletsData.data.newUsers || walletsData.data.newUsers.length === 0) {
+      if (!walletsData?.data?.newUsers) {
         throw new Error("No users found in your groups");
       }
 
@@ -149,35 +138,12 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
         return acc;
       }, {} as WalletsByTokenId);
 
-      console.log("Grouped wallets by token ID:", walletsByTokenId);
+      console.log("Wallets by token ID:", walletsByTokenId);
 
       // 4. Get scores for current game from these wallets
       const walletAddresses = Object.values(walletsByTokenId)
         .flatMap(wallets => Array.from(wallets as Set<string>));
 
-      console.log("Wallet addresses for score query:", walletAddresses);
-
-      // First, let's verify if there are any scores at all for the current game
-      const verificationQuery = `{
-        scoreAddeds(where: { gameId: "${currentGameId.toString()}" }) {
-          id
-          gameId
-          user
-        }
-      }`;
-
-      console.log("Verifying scores exist for current game:", verificationQuery);
-      
-      const verificationResponse = await fetch('https://api.studio.thegraph.com/query/94961/wordl31155/version/latest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: verificationQuery }),
-      });
-
-      const verificationData = await verificationResponse.json();
-      console.log("Verification response:", verificationData);
-
-      // Now query for scores from our wallet group
       const scoresQuery = `{
         scoreAddeds(
           where: {
@@ -188,7 +154,6 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
           orderDirection: desc
         ) {
           id
-          gameId
           user
           ciphertext
           datatoencrypthash
@@ -205,41 +170,12 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
         body: JSON.stringify({ query: scoresQuery }),
       });
 
-      if (!scoresResponse.ok) {
-        throw new Error(`Failed to fetch scores: ${scoresResponse.statusText}`);
-      }
-
-      const scoresData: SubgraphResponse = await scoresResponse.json();
-      console.log("Raw scores response:", scoresData);
-
-      if (!scoresData?.data) {
-        throw new Error("Invalid response from subgraph when fetching scores");
-      }
-
-      const { data } = scoresData;
-      if (!data.scoreAddeds || data.scoreAddeds.length === 0) {
+      const { data }: SubgraphResponse = await scoresResponse.json();
+      if (!data?.scoreAddeds || data.scoreAddeds.length === 0) {
         throw new Error("No scores found for the current game in your groups");
       }
 
-      // Log each score's data
-      data.scoreAddeds.forEach((score, index) => {
-        console.log(`Score ${index + 1}:`, {
-          gameId: score.gameId,
-          user: score.user,
-          hasEncryption: Boolean(score.ciphertext && score.datatoencrypthash)
-        });
-      });
-
-      // Validate score data structure
-      const invalidScores = data.scoreAddeds.filter(
-        score => !score.id || !score.user || !score.ciphertext || !score.datatoencrypthash || !score.blockTimestamp
-      );
-      if (invalidScores.length > 0) {
-        console.error("Found invalid score entries:", invalidScores);
-        throw new Error("Invalid score data received from subgraph");
-      }
-
-      console.log("Retrieved valid scores:", data.scoreAddeds);
+      console.log("Retrieved scores:", data.scoreAddeds);
 
       // 5. Decrypt scores using Lit Protocol
       const decryptedResults: DecryptedResult[] = [];
