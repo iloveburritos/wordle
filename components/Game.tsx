@@ -5,12 +5,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getWordOfTheDay, allWords } from '../lib/words';
 import Keyboard from './Keyboard';
-import { LetterState, icons, GameBoard, GameResult } from '../lib/types';
+import { LetterState, icons, GameBoard } from '../lib/types';
 import { encryptGameResult } from '../lib/encryptGameResult'; // Assuming you have this encryption function
 import styles from '../styles/Game.module.css';
 import GameOverModal from '@/components/modal/GameOverModal';
 import StatsModal from '@/components/modal/StatsModal';
-import { Button } from '@/components/ui/button';
+import ViewScoresButton from '@/components/ViewScoresButton';
 
 // Define interface for ciphertext and dataToEncryptHash
 export interface EncryptedResult {
@@ -41,6 +41,8 @@ export default function Game() {
   const [encryptedResult, setEncryptedResult] = useState<EncryptedResult | null>(null);
   const [isScoreSubmitted, setIsScoreSubmitted] = useState(false);
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+  const [viewScoresProgress, setViewScoresProgress] = useState(0);
+  const [isViewingScores, setIsViewingScores] = useState(false);
   
   // Construct the current row based on the current row index
   const currentRow = useMemo(() => board[currentRowIndex], [board, currentRowIndex]);
@@ -235,13 +237,18 @@ export default function Game() {
       <div className="flex justify-between items-center mb-4">
         <div className="flex gap-2">
           {message && <div className={styles.message}>{message}</div>}
+          {isViewingScores && (
+            <div className={styles.message}>
+              Decrypting scores... {viewScoresProgress}%
+            </div>
+          )}
         </div>
-        <Button 
+        <ViewScoresButton
           variant="outline"
-          onClick={() => setIsStatsModalOpen(true)}
-        >
-          See Results
-        </Button>
+          onLoadingChange={setIsViewingScores}
+          onProgressChange={setViewScoresProgress}
+          onError={(error) => setMessage(error)}
+        />
       </div>
       <div id="board" className={styles.board}>
         {board.map((row, rowIndex) => (
