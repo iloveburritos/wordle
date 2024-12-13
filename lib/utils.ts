@@ -217,3 +217,16 @@ export async function verifyWalletHasTokenId(walletAddress: string, tokenId: num
     throw error;
   }
 }
+
+// Check if a wallet has already played today's game
+export async function checkHasPlayed(walletAddress: string): Promise<boolean> {
+  try {
+    const contract = getContract();
+    const isAllowed = await contract.isAllowed(walletAddress);
+    console.log(`Checked if wallet ${walletAddress} has played:`, isAllowed);
+    return isAllowed;
+  } catch (error) {
+    console.error('Error checking if wallet has played:', error);
+    throw error;
+  }
+}

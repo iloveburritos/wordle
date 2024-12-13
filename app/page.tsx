@@ -3,33 +3,64 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePrivy } from '@privy-io/react-auth'
+import { useWallets } from '@privy-io/react-auth'
 import { Button } from '@/components/ui/button'
-import ErrorModal from '@/components/modal/ErrorModal';
-import InviteModal from '@/components/modal/InviteModal';
-import CreateGame from '@/components/modal/CreateGameModal';
-import StatsModal  from '@/components/modal/StatsModal';
+import NoWalletModal from '@/components/modal/NoWalletModal'
+import InviteModal from '@/components/modal/InviteModal'
+import CreateGame from '@/components/modal/CreateGameModal'
+import StatsModal from '@/components/modal/StatsModal'
+import AlreadyPlayedModal from '@/components/modal/AlreadyPlayedModal'
+import { checkHasPlayed } from '@/lib/utils'
 
 export default function Home() {
   const router = useRouter()
   const { authenticated } = usePrivy()
-  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false)
+  const { wallets } = useWallets()
+  const [isNoWalletModalOpen, setIsNoWalletModalOpen] = useState(false)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
   const [isCreateGameModalOpen, setIsCreateGameModalOpen] = useState(false)
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false)
+  const [isAlreadyPlayedModalOpen, setIsAlreadyPlayedModalOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleAction = (action: string) => {
-    if (!authenticated) {
-      setIsErrorModalOpen(true)
-    } else {
-      if (action === 'play') {
-        router.push('/game')
-      } else if (action === 'team') {
-        setIsInviteModalOpen(true)
-      } else if (action === 'create') {
-        setIsCreateGameModalOpen(true)
-      }
-      else if (action === 'stats') {
-        setIsStatsModalOpen(true)
+  const handleAction = async (action: string) => {
+    // Step 1: Check if wallet is connected
+    if (!authenticated || !wallets?.[0]) {
+      setIsNoWalletModalOpen(true)
+      return
+    }
+
+    // Handle non-game actions directly
+    if (action === 'team') {
+      setIsInviteModalOpen(true)
+      return
+    } else if (action === 'create') {
+      setIsCreateGameModalOpen(true)
+      return
+    } else if (action === 'stats') {
+      setIsStatsModalOpen(true)
+      return
+    }
+
+    // Handle game start flow
+    if (action === 'play') {
+      setIsLoading(true)
+      try {
+        // Step 2: Check if user has already played
+        const hasPlayed = await checkHasPlayed(wallets[0].address)
+        
+        if (hasPlayed) {
+          // User has already played, show modal
+          setIsAlreadyPlayedModalOpen(true)
+        } else {
+          // Step 3: User hasn't played, redirect to game
+          router.push('/game')
+        }
+      } catch (error) {
+        console.error('Error checking game status:', error)
+        alert('Error checking game status. Please try again.')
+      } finally {
+        setIsLoading(false)
       }
     }
   }
@@ -42,8 +73,12 @@ export default function Home() {
           Share your score in a group chat, without the risk of giving away any hints or clues. Guaranteed way to know you&apos;re the best. Built with Next and for Ethereum. 
         </p>
         <div className="flex gap-4">
-          <Button size="lg" onClick={() => handleAction('play')}>
-            Play Game
+          <Button 
+            size="lg" 
+            onClick={() => handleAction('play')}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Checking...' : 'Play Game'}
           </Button>
           <Button size="lg" onClick={() => handleAction('team')}>
             Invite Players
@@ -56,9 +91,10 @@ export default function Home() {
           </Button>
         </div>
       </main>
-      <ErrorModal 
-        isOpen={isErrorModalOpen} 
-        onClose={() => setIsErrorModalOpen(false)} 
+      
+      <NoWalletModal 
+        isOpen={isNoWalletModalOpen} 
+        onClose={() => setIsNoWalletModalOpen(false)} 
       />
       <InviteModal
         isOpen={isInviteModalOpen}
@@ -68,9 +104,13 @@ export default function Home() {
         isOpen={isCreateGameModalOpen}
         onClose={() => setIsCreateGameModalOpen(false)}
       />
-       <StatsModal
+      <StatsModal
         isOpen={isStatsModalOpen}
         onClose={() => setIsStatsModalOpen(false)}
+      />
+      <AlreadyPlayedModal
+        isOpen={isAlreadyPlayedModalOpen}
+        onClose={() => setIsAlreadyPlayedModalOpen(false)}
       />
     </div>
   )
