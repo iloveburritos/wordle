@@ -17,7 +17,7 @@ import {
     try {
       const evmContractConditions: EvmContractConditions = [
           {
-            contractAddress: "0x36a74dA23506e80Af8D85EfdE4A6eAB1C6cCc26c",
+            contractAddress: "0xF55B6959Cb83294C3D54aac2a3DeCD79F7952CA2",
             functionName: "isAllowed",
             functionParams: [":userAddress"],
             functionAbi: {
@@ -96,7 +96,7 @@ import {
       // Access control conditions for the Wordle game contract
       const evmContractConditions = [
         {
-          contractAddress: "0x36a74dA23506e80Af8D85EfdE4A6eAB1C6cCc26c",
+          contractAddress: "0xF55B6959Cb83294C3D54aac2a3DeCD79F7952CA2",
           functionName: "isAllowed",
           functionParams: [":userAddress"],
           functionAbi: {
