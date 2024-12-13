@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { useWallets } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
-import {getWalletTokenIds } from '@/lib/utils';
+import { fetchScoresForCurrentGame, getWalletTokenIds } from '@/lib/utils';
 import { decryptStringWithContractConditions } from '@/lib/litUtils';
 import { Loader2 } from 'lucide-react';
 

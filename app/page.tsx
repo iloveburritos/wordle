@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button'
 import NoWalletModal from '@/components/modal/NoWalletModal'
 import InviteModal from '@/components/modal/InviteModal'
 import CreateGame from '@/components/modal/CreateGameModal'
-import StatsModal from '@/components/modal/StatsModal'
+import ViewScoresButton from '@/components/ViewScoresButton'
 import AlreadyPlayedModal from '@/components/modal/AlreadyPlayedModal'
 import { checkHasPlayed } from '@/lib/utils'
+
 
 export default function Home() {
   const router = useRouter()
@@ -19,7 +20,6 @@ export default function Home() {
   const [isNoWalletModalOpen, setIsNoWalletModalOpen] = useState(false)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
   const [isCreateGameModalOpen, setIsCreateGameModalOpen] = useState(false)
-  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false)
   const [isAlreadyPlayedModalOpen, setIsAlreadyPlayedModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -36,9 +36,6 @@ export default function Home() {
       return
     } else if (action === 'create') {
       setIsCreateGameModalOpen(true)
-      return
-    } else if (action === 'stats') {
-      setIsStatsModalOpen(true)
       return
     }
 
@@ -86,9 +83,12 @@ export default function Home() {
           <Button size="lg" onClick={() => handleAction('create')}>
             Create Game
           </Button>
-          <Button size="lg" onClick={() => handleAction('stats')} variant="outline">
-            View Stats
-          </Button>
+          <ViewScoresButton 
+  variant="outline" 
+  className="h-11"
+  label="See Results"
+  onError={(error) => alert(error)} 
+/>
         </div>
       </main>
       
@@ -103,10 +103,6 @@ export default function Home() {
       <CreateGame 
         isOpen={isCreateGameModalOpen}
         onClose={() => setIsCreateGameModalOpen(false)}
-      />
-      <StatsModal
-        isOpen={isStatsModalOpen}
-        onClose={() => setIsStatsModalOpen(false)}
       />
       <AlreadyPlayedModal
         isOpen={isAlreadyPlayedModalOpen}
