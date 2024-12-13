@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { PrivyClient } from '@privy-io/server-auth';
-import { ethers } from 'ethers';
+
 import { ethProvider } from '@/lib/provider';
-import { reverseResolveENS } from '@/lib/utils';
+
 
 const privy = new PrivyClient(
   process.env.PRIVY_APP_ID!,
@@ -18,7 +18,7 @@ async function resolveIdentifier(address: string): Promise<string | null> {
     }
 
     // 2. Try ENS using the utility function
-    const ensName = await reverseResolveENS(address);
+    const ensName = await ethProvider.lookupAddress(address.toLowerCase()); 
     if (ensName) {
       return ensName;
     }
@@ -26,8 +26,9 @@ async function resolveIdentifier(address: string): Promise<string | null> {
     // 3. Return shortened wallet address as fallback
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   } catch (error) {
-    console.error(`Error resolving identifier for ${address}:`, error);
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+    console.error(`Error resolving identifier for ${shortAddress}:`, error);
+    return shortAddress;
   }
 }
 
