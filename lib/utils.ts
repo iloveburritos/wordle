@@ -230,3 +230,88 @@ export async function checkHasPlayed(walletAddress: string): Promise<boolean> {
     throw error;
   }
 }
+
+// Reverse lookup a wallet address to get its ENS domain
+export async function reverseResolveENS(address: string): Promise<string | null> {
+  try {
+    // Validate the address
+    if (!ethers.utils.isAddress(address)) {
+      throw new Error('Invalid Ethereum address');
+    }
+
+    // Try to get the ENS name for this address
+    const ensName = await ethProvider.lookupAddress(address);
+    console.log(`Reverse resolved ${address} to ENS:`, ensName);
+    return ensName;
+  } catch (error) {
+    console.error('Error reverse resolving ENS:', error);
+    return null;
+  }
+}
+
+// Reverse lookup a wallet address to get its Privy email
+export async function reverseResolvePrivyEmail(address: string): Promise<string | null> {
+  try {
+    // Validate the address
+    if (!ethers.utils.isAddress(address)) {
+      throw new Error('Invalid Ethereum address');
+    }
+
+    // Query the API to get email for this wallet
+    const response = await fetch('/api/walletToEmail', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ walletAddress: address }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to resolve wallet to email');
+    }
+
+    const data = await response.json();
+    console.log(`Reverse resolved ${address} to email:`, data.email);
+    return data.email;
+  } catch (error) {
+    console.error('Error reverse resolving Privy email:', error);
+    return null;
+  }
+}
+
+// Combined function to get both ENS and email if available
+export async function resolveWalletIdentifiers(address: string): Promise<{
+  ens: string | null;
+  email: string | null;
+}> {
+  const [ens, email] = await Promise.all([
+    reverseResolveENS(address),
+    reverseResolvePrivyEmail(address)
+  ]);
+
+  return { ens, email };
+}
+
+// Format a wallet address with available identifiers
+export async function formatWalletDisplay(address: string): Promise<string> {
+  try {
+    const { ens, email } = await resolveWalletIdentifiers(address);
+    
+    // Format address for display
+    const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+    
+    // Build display string with available identifiers
+    const identifiers = [
+      ens && `(${ens})`,
+      email && `(${email})`,
+    ].filter(Boolean);
+
+    return identifiers.length > 0
+      ? `${shortAddress} ${identifiers.join(' ')}`
+      : shortAddress;
+  } catch (error) {
+    console.error('Error formatting wallet display:', error);
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  }
+}

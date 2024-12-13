@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useWallets } from '@privy-io/react-auth';
 import GameResultGrid from '@/components/GameResultGrid';
 import { GameBoard, LetterState } from '@/lib/types';
+import { formatWalletDisplay } from '@/lib/utils';
 
 interface PlayerStat {
   tokenId: string;
@@ -30,6 +31,7 @@ export default function Results() {
   const [isLoading, setIsLoading] = useState(true);
   const { wallets } = useWallets();
   const userWallet = wallets[0] as Wallet | undefined;
+  const [walletDisplays, setWalletDisplays] = useState<{ [address: string]: string }>({});
 
   useEffect(() => {
     const statsParam = searchParams.get('stats');
@@ -60,13 +62,26 @@ export default function Results() {
     setIsLoading(false);
   }, [searchParams]);
 
+  useEffect(() => {
+    const resolveWalletDisplays = async () => {
+      const displays: { [address: string]: string } = {};
+      for (const [_, stats] of Object.entries(groupedStats)) {
+        for (const stat of stats) {
+          if (!displays[stat.user]) {
+            displays[stat.user] = await formatWalletDisplay(stat.user);
+          }
+        }
+      }
+      setWalletDisplays(displays);
+    };
+    
+    if (Object.keys(groupedStats).length > 0) {
+      resolveWalletDisplays();
+    }
+  }, [groupedStats]);
+
   const handlePlayAgain = () => {
     router.push('/game');
-  };
-
-  const formatAddress = (address: string) => {
-    if (!address) return '';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   const isCurrentUser = (address: string) => {
@@ -102,7 +117,7 @@ export default function Results() {
                   {stats.map((stat, index) => (
                     <div key={index} className="border-t border-gray-700 pt-4 first:border-0 first:pt-0">
                       <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
-                        <span>Player: {formatAddress(stat.user)}</span>
+                        <span>Player: {walletDisplays[stat.user] || stat.user.slice(0, 6) + '...' + stat.user.slice(-4)}</span>
                         {isCurrentUser(stat.user) && (
                           <span className="text-xs bg-green-600 px-2 py-1 rounded">You</span>
                         )}
