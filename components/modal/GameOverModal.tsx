@@ -3,12 +3,12 @@
 import React, { useState } from 'react';
 import { EncryptedResult, GameBoard } from '@/lib/types';
 import SubmitScoreModal from './SubmitScoreModal';
-import StatsModal from './StatsModal';
+import ViewScoresButton from '@/components/ViewScoresButton';
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface GameOverModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSeeResults: () => void;
   gameResult: {
     board: GameBoard;
     encryptedString: EncryptedResult;
@@ -21,55 +21,49 @@ interface GameOverModalProps {
 export default function GameOverModal({
   isOpen,
   onClose,
-  onSeeResults,
   gameResult,
   message
 }: GameOverModalProps) {
   const [showSubmitModal, setShowSubmitModal] = useState(true);
-  const [showStatsModal, setShowStatsModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [decryptionProgress, setDecryptionProgress] = useState(0);
 
   const handleScoreSubmitted = () => {
-    console.log("Score submitted successfully, showing stats modal");
     setShowSubmitModal(false);
-    setShowStatsModal(true);
     setIsSubmitting(false);
   };
 
   const handleSubmitStart = () => {
-    console.log("Starting score submission");
     setIsSubmitting(true);
-  };
-
-  const handleClose = () => {
-    if (!isSubmitting) {
-      console.log("Closing modals");
-      setShowSubmitModal(false);
-      setShowStatsModal(false);
-      onClose();
-    }
   };
 
   if (!isOpen) return null;
 
   return (
     <>
-      {showSubmitModal && (
+      {showSubmitModal ? (
         <SubmitScoreModal
           isOpen={true}
-          onClose={handleClose}
+          onClose={onClose}
           onScoreSubmitted={handleScoreSubmitted}
           onSubmitStart={handleSubmitStart}
           gameResult={gameResult}
           message={message}
           isSubmitting={isSubmitting}
         />
-      )}
-      {showStatsModal && (
-        <StatsModal
-          isOpen={true}
-          onClose={handleClose}
-        />
+      ) : (
+        <Dialog open={true} onOpenChange={onClose}>
+          <DialogContent className="bg-black opacity-80">
+            <ViewScoresButton
+              variant="outline"
+              label="See Results"
+              onLoadingChange={setIsSubmitting}
+              onProgressChange={setDecryptionProgress}
+              onSuccess={onClose}
+              onError={(error) => alert(error)}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </>
   );
