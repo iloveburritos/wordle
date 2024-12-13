@@ -9,6 +9,8 @@ import { LetterState, icons, GameBoard, GameResult } from '../lib/types';
 import { encryptGameResult } from '../lib/encryptGameResult'; // Assuming you have this encryption function
 import styles from '../styles/Game.module.css';
 import GameOverModal from '@/components/modal/GameOverModal';
+import StatsModal from '@/components/modal/StatsModal';
+import { Button } from '@/components/ui/button';
 
 // Define interface for ciphertext and dataToEncryptHash
 export interface EncryptedResult {
@@ -38,6 +40,7 @@ export default function Game() {
   const [gameOverMessage, setGameOverMessage] = useState('');
   const [encryptedResult, setEncryptedResult] = useState<EncryptedResult | null>(null);
   const [isScoreSubmitted, setIsScoreSubmitted] = useState(false);
+  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
   
   // Construct the current row based on the current row index
   const currentRow = useMemo(() => board[currentRowIndex], [board, currentRowIndex]);
@@ -229,7 +232,17 @@ export default function Game() {
 
   return (
     <div className="pt-4">
-      {message && <div className={styles.message}>{message}</div>}
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex gap-2">
+          {message && <div className={styles.message}>{message}</div>}
+        </div>
+        <Button 
+          variant="outline"
+          onClick={() => setIsStatsModalOpen(true)}
+        >
+          See Results
+        </Button>
+      </div>
       <div id="board" className={styles.board}>
         {board.map((row, rowIndex) => (
           <div
@@ -275,6 +288,10 @@ export default function Game() {
           message={gameOverMessage}
         />
       )}
+      <StatsModal
+        isOpen={isStatsModalOpen}
+        onClose={() => setIsStatsModalOpen(false)}
+      />
     </div>
   );
 }
