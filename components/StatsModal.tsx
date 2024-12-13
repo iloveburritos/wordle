@@ -45,7 +45,7 @@ interface ScoresByTokenId {
 
 interface DecryptedResult {
   tokenId: string;
-  score: GameBoard;
+  score: string;
   user: string;
   timestamp: number;
 }
@@ -91,7 +91,7 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
       const provider = new ethers.providers.Web3Provider(await userWallet.getEthereumProvider());
       const signer = provider.getSigner();
       const contract = new ethers.Contract(
-        "0x36a74dA23506e80Af8D85EfdE4A6eAB1C6cCc26c",
+        process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string,
         ["function currentGame() view returns (uint256)"],
         signer
       );
@@ -118,7 +118,7 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
 
       console.log("Querying wallets with shared tokenIds:", walletQuery);
       
-      const walletsResponse = await fetch('https://api.studio.thegraph.com/query/94961/wordl31155/version/latest', {
+      const walletsResponse = await fetch(process.env.NEXT_PUBLIC_SUBGRAPH_URL as string, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: walletQuery }),
@@ -164,7 +164,7 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
 
       console.log("Querying scores for current game:", scoresQuery);
 
-      const scoresResponse = await fetch('https://api.studio.thegraph.com/query/94961/wordl31155/version/latest', {
+      const scoresResponse = await fetch(process.env.NEXT_PUBLIC_SUBGRAPH_URL as string, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: scoresQuery }),
@@ -202,7 +202,7 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
             continue;
           }
 
-          // Decrypt the score
+          // When processing scores, keep the decrypted string
           const decryptedString = await decryptStringWithContractConditions(
             entry.ciphertext,
             entry.datatoencrypthash,
@@ -215,13 +215,11 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
             continue;
           }
 
-          // Convert decrypted string to game board
-          const gameBoard = stringToGameBoard(decryptedString);
-          console.log(`Successfully decrypted score for user ${entry.user} in group ${tokenId}:`, gameBoard);
+          console.log(`Successfully decrypted score for user ${entry.user} in group ${tokenId}:`, decryptedString);
 
           decryptedResults.push({
             tokenId,
-            score: gameBoard,
+            score: decryptedString,
             user: entry.user,
             timestamp: parseInt(entry.blockTimestamp)
           });

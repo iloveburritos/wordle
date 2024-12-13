@@ -4,15 +4,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import GameResultGrid from '@/components/GameResultGrid';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { GameBoard } from '@/lib/types';
 import { useWallets } from '@privy-io/react-auth';
 
 interface PlayerStat {
   tokenId: string;
-  score: GameBoard;  // This is already the decrypted and converted game board
+  score: string;  // Changed from GameBoard to string
   user: string;
   timestamp: number;
 }
@@ -37,18 +35,26 @@ export default function Results() {
     const statsParam = searchParams.get('stats');
     if (statsParam) {
       try {
-        const decodedStats = JSON.parse(decodeURIComponent(statsParam)) as PlayerStat[];
+        const parsedData = JSON.parse(decodeURIComponent(statsParam));
+        console.log("Parsed stats data:", parsedData);
         
-        // Group stats by tokenId - no need for decryption/conversion since it's already done
-        const grouped = decodedStats.reduce((acc: GroupedStats, stat) => {
-          if (!acc[stat.tokenId]) {
-            acc[stat.tokenId] = [];
-          }
-          acc[stat.tokenId].push(stat);
-          return acc;
-        }, {});
-
-        setGroupedStats(grouped);
+        if (parsedData.byGroup) {
+          // Data is already grouped, use it directly
+          setGroupedStats(parsedData.byGroup);
+        } else if (Array.isArray(parsedData.allResults)) {
+          // If we have allResults array, group it
+          const grouped = parsedData.allResults.reduce((acc: GroupedStats, stat: PlayerStat) => {
+            if (!acc[stat.tokenId]) {
+              acc[stat.tokenId] = [];
+            }
+            acc[stat.tokenId].push(stat);
+            return acc;
+          }, {} as GroupedStats);
+          setGroupedStats(grouped);
+        } else {
+          console.error("Invalid data structure received:", parsedData);
+          throw new Error("Invalid data structure");
+        }
       } catch (error) {
         console.error('Error parsing stats:', error);
       }
@@ -67,6 +73,23 @@ export default function Results() {
 
   const isCurrentUser = (address: string) => {
     return userWallet?.address?.toLowerCase() === address?.toLowerCase();
+  };
+
+  const renderScore = (score: string) => {
+    return (
+      <div className="grid grid-cols-5 gap-1">
+        {score.split('').map((char, idx) => (
+          <div
+            key={idx}
+            className={`w-8 h-8 flex items-center justify-center font-bold text-white
+              ${char === 'G' ? 'bg-green-500' : 
+                char === 'Y' ? 'bg-yellow-500' : 'bg-gray-500'}`}
+          >
+            {char}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -103,7 +126,7 @@ export default function Results() {
                           <span className="text-xs bg-green-600 px-2 py-1 rounded">You</span>
                         )}
                       </h3>
-                      <GameResultGrid board={stat.score} />
+                      {renderScore(stat.score)}
                     </div>
                   ))}
                 </div>
