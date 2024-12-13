@@ -1,5 +1,3 @@
-// app/results/page.tsx
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -8,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useWallets } from '@privy-io/react-auth';
 import GameResultGrid from '@/components/GameResultGrid';
-import { GameBoard, GameTile, LetterState } from '@/lib/types';
-import { stringToGameBoard } from '@/lib/stringToGameBoard';
+import { GameBoard, LetterState } from '@/lib/types';
 
 interface PlayerStat {
   tokenId: string;
@@ -42,10 +39,8 @@ export default function Results() {
         console.log("Parsed stats data:", parsedData);
         
         if (parsedData.groupedResults) {
-          // Data is already grouped
           setGroupedStats(parsedData.groupedResults);
         } else if (parsedData.results && Array.isArray(parsedData.results)) {
-          // If we have results array, group it
           const grouped = parsedData.results.reduce((acc: GroupedStats, stat: PlayerStat) => {
             if (!acc[stat.tokenId]) {
               acc[stat.tokenId] = [];
@@ -76,39 +71,6 @@ export default function Results() {
 
   const isCurrentUser = (address: string) => {
     return userWallet?.address?.toLowerCase() === address?.toLowerCase();
-  };
-
-  const renderGameTile = (tile: GameTile) => {
-    const bgColorClass = 
-      tile.state === LetterState.CORRECT ? 'bg-green-500' :
-      tile.state === LetterState.PRESENT ? 'bg-yellow-500' :
-      'bg-gray-500';
-
-    return (
-      <div
-        className={`w-8 h-8 flex items-center justify-center font-bold text-white ${bgColorClass} rounded`}
-      >
-        {tile.letter}
-      </div>
-    );
-  };
-
-  const renderGameBoard = (scoreString: string) => {
-    const gameBoard = stringToGameBoard(scoreString);
-    
-    return (
-      <div className="grid gap-1">
-        {gameBoard.map((row, rowIndex) => (
-          <div key={rowIndex} className="grid grid-cols-5 gap-1">
-            {row.map((tile, colIndex) => (
-              <React.Fragment key={`${rowIndex}-${colIndex}`}>
-                {renderGameTile(tile)}
-              </React.Fragment>
-            ))}
-          </div>
-        ))}
-      </div>
-    );
   };
 
   if (isLoading) {
@@ -145,7 +107,7 @@ export default function Results() {
                           <span className="text-xs bg-green-600 px-2 py-1 rounded">You</span>
                         )}
                       </h3>
-                      {renderGameBoard(stat.score)}
+                      <GameResultGrid board={parseGameBoard(stat.score)} />
                     </div>
                   ))}
                 </div>
@@ -164,5 +126,22 @@ export default function Results() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Helper function to parse the score string into a GameBoard
+function parseGameBoard(scoreString: string): GameBoard {
+  const stateMap: { [key: string]: LetterState } = {
+    'G': LetterState.CORRECT,
+    'Y': LetterState.PRESENT,
+    'X': LetterState.ABSENT
+  };
+
+  const rows = scoreString.match(/.{1,5}/g) || [];
+  return rows.map(row =>
+    row.split('').map(char => ({
+      letter: '',
+      state: stateMap[char] || LetterState.INITIAL
+    }))
   );
 }

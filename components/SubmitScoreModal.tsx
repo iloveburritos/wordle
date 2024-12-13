@@ -1,14 +1,15 @@
 'use client'
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { EncryptedResult, GameBoard, GameResult, icons, LetterState } from '../lib/types';
+import { EncryptedResult, GameBoard, GameResult } from '../lib/types';
 import { SiweMessage } from 'siwe';
 import { useWallets } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { Loader2 } from 'lucide-react';
 import { useWalletTokens } from '@/hooks/useWalletTokens';
+import GameResultGrid from './GameResultGrid';
 
 interface SubmitScoreModalProps {
   isOpen: boolean;
@@ -25,18 +26,17 @@ interface SubmitScoreModalProps {
   isSubmitting: boolean;
 }
 
-const renderGrid = (board: GameResult['board']): string => {
-  const lastCompletedRowIndex = board.findIndex(row => row.some(tile => tile.state === LetterState.INITIAL));
-  const completedRows = lastCompletedRowIndex === -1 ? board : board.slice(0, lastCompletedRowIndex);
-  return completedRows
-    .map((row) => row.map((tile) => icons[tile.state]).join(''))
-    .join('\n');
-};
-
-export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, onSubmitStart, gameResult, message, isSubmitting }: SubmitScoreModalProps) {
+export default function SubmitScoreModal({ 
+  isOpen, 
+  onClose, 
+  onScoreSubmitted, 
+  onSubmitStart, 
+  gameResult, 
+  message, 
+  isSubmitting 
+}: SubmitScoreModalProps) {
   const { wallets } = useWallets();
   const userWallet = wallets[0];
-  const grid = renderGrid(gameResult.board);
   const { tokenIds, loading: loadingTokens, error: tokenError } = useWalletTokens(userWallet?.address);
 
   const handleSubmitScore = async () => {
@@ -86,11 +86,6 @@ export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, on
       const message = siweMessage.prepareMessage();
       const signature = await signer.signMessage(message);
 
-      console.log('Sending encrypted score data:', {
-        ciphertext: gameResult.encryptedString.ciphertext,
-        dataToEncryptHash: gameResult.encryptedString.dataToEncryptHash
-      });
-
       const apiResponse = await fetch('http://localhost:3001/send-score', {
         method: 'POST',
         headers: {
@@ -111,7 +106,6 @@ export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, on
         const errorData = await apiResponse.json();
         const errorMessage = errorData.error || 'Failed to send score';
         
-        // Check if the error is because score was already submitted
         if (errorMessage.includes('Score already submitted for this game')) {
           console.log('Score was already submitted for this game, proceeding to stats');
           onScoreSubmitted();
@@ -124,7 +118,6 @@ export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, on
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit score. Please try again later.';
       
-      // Check if the error is because score was already submitted
       if (errorMessage.includes('Score already submitted for this game')) {
         console.log('Score was already submitted for this game, proceeding to stats');
         onScoreSubmitted();
@@ -143,7 +136,9 @@ export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, on
           <DialogTitle>Game Over!</DialogTitle>
           <DialogDescription>{message}</DialogDescription>
         </DialogHeader>
-        <pre>{grid}</pre>
+        <div className="flex justify-center">
+          <GameResultGrid board={gameResult.board} />
+        </div>
         <DialogFooter className="sm:justify-start">
           <Button 
             onClick={handleSubmitScore} 
@@ -167,4 +162,4 @@ export default function SubmitScoreModal({ isOpen, onClose, onScoreSubmitted, on
       </DialogContent>
     </Dialog>
   );
-} 
+}
