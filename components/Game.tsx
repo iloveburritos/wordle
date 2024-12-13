@@ -8,7 +8,7 @@ import Keyboard from './Keyboard';
 import { LetterState, icons, GameBoard, GameResult } from '../lib/types';
 import { encryptGameResult } from '../lib/encryptGameResult'; // Assuming you have this encryption function
 import styles from '../styles/Game.module.css';
-import GameOverModal from './GameOverModal';
+import GameOverModal from '@/components/modal/GameOverModal';
 
 // Define interface for ciphertext and dataToEncryptHash
 export interface EncryptedResult {

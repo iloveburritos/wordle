@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useWallets } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
-import { fetchScoresForCurrentGame, getWalletTokenIds } from '../lib/utils';
+import { fetchScoresForCurrentGame, getWalletTokenIds } from '../../lib/utils';
 import { decryptStringWithContractConditions } from '@/lib/litUtils';
 import { Loader2 } from 'lucide-react';
 import { GameBoard, LetterState } from '@/lib/types';

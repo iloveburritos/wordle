@@ -4,10 +4,10 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePrivy } from '@privy-io/react-auth'
 import { Button } from '@/components/ui/button'
-import ErrorModal from '@/components/error-modal'
-import InviteModal from '@/components/invite-modal'
-import CreateGame from '@/components/CreateGame'
-import StatsModal  from '@/components/StatsModal'
+import ErrorModal from '@/components/modal/ErrorModal';
+import InviteModal from '@/components/modal/InviteModal';
+import CreateGame from '@/components/modal/CreateGameModal';
+import StatsModal  from '@/components/modal/StatsModal';
 
 export default function Home() {
   const router = useRouter()

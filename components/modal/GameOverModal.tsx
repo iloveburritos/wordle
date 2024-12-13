@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import { EncryptedResult, GameBoard } from '../lib/types';
+import { EncryptedResult, GameBoard } from '@/lib/types';
 import SubmitScoreModal from './SubmitScoreModal';
 import StatsModal from './StatsModal';
 
