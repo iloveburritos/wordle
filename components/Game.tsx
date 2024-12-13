@@ -193,7 +193,10 @@ export default function Game() {
           console.log('Encrypted result:', encryptedResult);
           setEncryptedResult(encryptedResult);
           
+          // Ensure modal shows up after encryption
+          setGameOverMessage(message);
           setIsGameOverModalOpen(true);
+          
         }, 1600);
       } else if (currentRowIndex < board.length - 1) {
         setCurrentRowIndex((prevIndex) => prevIndex + 1);
@@ -285,7 +288,6 @@ export default function Game() {
         <GameOverModal
           isOpen={isGameOverModalOpen}
           onClose={() => setIsGameOverModalOpen(false)}
-          onSeeResults={handleSeeResults}
           gameResult={{
             board,
             encryptedString: encryptedResult,

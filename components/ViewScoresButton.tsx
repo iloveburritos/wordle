@@ -82,11 +82,18 @@ export default function ViewScoresButton({
       // 1. Get current game ID from smart contract
       const provider = new ethers.providers.Web3Provider(await wallets[0].getEthereumProvider());
       const signer = provider.getSigner();
+      
+      // Force switch to Base Sepolia before contract interaction
+      await provider.send("wallet_switchEthereumChain", [
+        { chainId: "0x14A34" }
+      ]);
+      
       const contract = new ethers.Contract(
         process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string,
         ["function currentGame() view returns (uint256)"],
-        signer
+        provider // Use provider instead of signer for read-only call
       );
+      
       const currentGameId = await contract.currentGame();
       console.log("Current game ID:", currentGameId.toString());
 
