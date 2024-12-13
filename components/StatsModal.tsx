@@ -69,6 +69,12 @@ interface ScoreAdded {
   blockTimestamp: string;
 }
 
+interface ScoreAddedResponse {
+  data?: {
+    scoreAddeds?: ScoreEntry[];
+  };
+}
+
 export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -148,7 +154,7 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
         scoreAddeds(
           where: {
             gameId: "${currentGameId.toString()}"
-            user_in: ${JSON.stringify(walletAddresses)}
+            user_in: ${JSON.stringify(walletAddresses.map(addr => addr.toLowerCase()))}
           }
           orderBy: blockTimestamp
           orderDirection: desc
@@ -170,63 +176,124 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
         body: JSON.stringify({ query: scoresQuery }),
       });
 
-      const { data }: SubgraphResponse = await scoresResponse.json();
-      if (!data?.scoreAddeds || data.scoreAddeds.length === 0) {
-        throw new Error("No scores found for the current game in your groups");
+      const scoresData: ScoreAddedResponse = await scoresResponse.json();
+      let scores: ScoreEntry[] = [];
+      
+      // Check if we have any scores
+      if (!scoresData?.data?.scoreAddeds || scoresData.data.scoreAddeds.length === 0) {
+        console.log("No scores found in initial query");
+        
+        // Try querying without case sensitivity
+        const fallbackScoresQuery = `{
+          scoreAddeds(
+            where: {
+              gameId: "${currentGameId.toString()}"
+            }
+          ) {
+            id
+            user
+            ciphertext
+            datatoencrypthash
+            blockTimestamp
+            transactionHash
+          }
+        }`;
+
+        console.log("Trying fallback query for scores:", fallbackScoresQuery);
+        
+        const fallbackResponse = await fetch(process.env.NEXT_PUBLIC_SUBGRAPH_URL as string, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: fallbackScoresQuery }),
+        });
+
+        const fallbackData: ScoreAddedResponse = await fallbackResponse.json();
+        
+        if (!fallbackData?.data?.scoreAddeds || fallbackData.data.scoreAddeds.length === 0) {
+          throw new Error("No scores found for the current game in your groups");
+        }
+
+        // Filter scores manually to match our wallet groups
+        scores = fallbackData.data.scoreAddeds.filter((score: ScoreEntry) => 
+          Object.entries(walletsByTokenId).some(([_, wallets]) => 
+            Array.from(wallets as Set<string>).some(wallet => 
+              wallet.toLowerCase() === score.user.toLowerCase()
+            )
+          )
+        );
+
+        if (scores.length === 0) {
+          throw new Error("No scores found for any wallets in your groups");
+        }
+      } else {
+        scores = scoresData.data.scoreAddeds;
       }
 
-      console.log("Retrieved scores:", data.scoreAddeds);
+      console.log("Retrieved scores:", scores);
+
+      // Group scores by tokenId before processing
+      const scoresByTokenId: { [tokenId: string]: ScoreEntry[] } = {};
+      
+      for (const score of scores) {
+        // Find which group(s) this wallet belongs to
+        for (const [tokenId, wallets] of Object.entries(walletsByTokenId)) {
+          if (Array.from(wallets as Set<string>).some(wallet => 
+              wallet.toLowerCase() === score.user.toLowerCase()
+          )) {
+            if (!scoresByTokenId[tokenId]) {
+              scoresByTokenId[tokenId] = [];
+            }
+            scoresByTokenId[tokenId].push(score);
+          }
+        }
+      }
+
+      console.log("Scores grouped by tokenId:", scoresByTokenId);
 
       // 5. Decrypt scores using Lit Protocol
       const decryptedResults: DecryptedResult[] = [];
-      const totalScores = data.scoreAddeds.length;
-      
-      for (const [index, entry] of data.scoreAddeds.entries()) {
-        try {
-          setDecryptionProgress(Math.floor((index / totalScores) * 100));
-          
-          // Find which tokenId this wallet belongs to
-          const tokenId = Object.entries(walletsByTokenId)
-            .find(([_, wallets]) => (wallets as Set<string>).has(entry.user.toLowerCase()))?.[0];
-            
-          if (!tokenId) {
-            console.warn(`Could not find tokenId for user ${entry.user}`);
+      const totalGroups = Object.keys(scoresByTokenId).length;
+      let processedGroups = 0;
+
+      for (const [tokenId, scores] of Object.entries(scoresByTokenId)) {
+        console.log(`Processing group ${tokenId} (${scores.length} scores)`);
+        
+        for (const score of scores) {
+          try {
+            // Skip if missing encryption data
+            if (!score.ciphertext || !score.datatoencrypthash) {
+              console.warn(`Missing encryption data for user ${score.user} in group ${tokenId}`);
+              continue;
+            }
+
+            const decryptedString = await decryptStringWithContractConditions(
+              score.ciphertext,
+              score.datatoencrypthash,
+              signer,
+              "baseSepolia"
+            );
+
+            if (!decryptedString) {
+              console.warn(`Decryption failed for user ${score.user} in group ${tokenId}`);
+              continue;
+            }
+
+            console.log(`Successfully decrypted score for user ${score.user} in group ${tokenId}`);
+
+            decryptedResults.push({
+              tokenId,
+              score: decryptedString,
+              user: score.user,
+              timestamp: parseInt(score.blockTimestamp)
+            });
+          } catch (error) {
+            console.error(`Error processing score for user ${score.user} in group ${tokenId}:`, error);
             continue;
           }
-
-          console.log(`Processing score ${index + 1}/${totalScores} for user ${entry.user} in group ${tokenId}`);
-
-          // Skip if missing encryption data
-          if (!entry.ciphertext || !entry.datatoencrypthash) {
-            console.warn(`Missing encryption data for user ${entry.user} in group ${tokenId}`);
-            continue;
-          }
-
-          // When processing scores, keep the decrypted string
-          const decryptedString = await decryptStringWithContractConditions(
-            entry.ciphertext,
-            entry.datatoencrypthash,
-            signer,
-            "baseSepolia"
-          );
-
-          if (!decryptedString) {
-            console.warn(`Decryption failed for user ${entry.user} in group ${tokenId}`);
-            continue;
-          }
-
-          console.log(`Successfully decrypted score for user ${entry.user} in group ${tokenId}:`, decryptedString);
-
-          decryptedResults.push({
-            tokenId,
-            score: decryptedString,
-            user: entry.user,
-            timestamp: parseInt(entry.blockTimestamp)
-          });
-        } catch (error) {
-          console.error(`Error processing score for user ${entry.user}:`, error);
-          continue;
         }
+
+        processedGroups++;
+        setDecryptionProgress(Math.floor((processedGroups / totalGroups) * 100));
       }
 
       setDecryptionProgress(100);
@@ -261,6 +328,7 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
         currentGameId: currentGameId.toString()
       }));
       router.push(`/results?stats=${queryString}`);
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       console.error('Error in handleSeeStats:', error);
