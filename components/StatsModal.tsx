@@ -249,9 +249,9 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
       }, {} as ResultsByGroup);
       
       console.log("Final decrypted results:", {
-        allResults: decryptedResults,
-        byGroup: resultsByGroup,
-        currentGame: currentGameId.toString()
+        results: decryptedResults,
+        groupedResults: resultsByGroup,
+        currentGameId: currentGameId.toString()
       });
       
       // 7. Navigate to results page with all scores

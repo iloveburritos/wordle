@@ -38,12 +38,12 @@ export default function Results() {
         const parsedData = JSON.parse(decodeURIComponent(statsParam));
         console.log("Parsed stats data:", parsedData);
         
-        if (parsedData.byGroup) {
-          // Data is already grouped, use it directly
-          setGroupedStats(parsedData.byGroup);
-        } else if (Array.isArray(parsedData.allResults)) {
-          // If we have allResults array, group it
-          const grouped = parsedData.allResults.reduce((acc: GroupedStats, stat: PlayerStat) => {
+        if (parsedData.groupedResults) {
+          // Data is already grouped
+          setGroupedStats(parsedData.groupedResults);
+        } else if (parsedData.results && Array.isArray(parsedData.results)) {
+          // If we have results array, group it
+          const grouped = parsedData.results.reduce((acc: GroupedStats, stat: PlayerStat) => {
             if (!acc[stat.tokenId]) {
               acc[stat.tokenId] = [];
             }

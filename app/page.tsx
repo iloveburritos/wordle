@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import ErrorModal from '@/components/error-modal'
 import InviteModal from '@/components/invite-modal'
 import CreateGame from '@/components/CreateGame'
+import StatsModal  from '@/components/StatsModal'
 
 export default function Home() {
   const router = useRouter()
@@ -14,6 +15,7 @@ export default function Home() {
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
   const [isCreateGameModalOpen, setIsCreateGameModalOpen] = useState(false)
+  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false)
 
   const handleAction = (action: string) => {
     if (!authenticated) {
@@ -25,6 +27,9 @@ export default function Home() {
         setIsInviteModalOpen(true)
       } else if (action === 'create') {
         setIsCreateGameModalOpen(true)
+      }
+      else if (action === 'stats') {
+        setIsStatsModalOpen(true)
       }
     }
   }
@@ -46,6 +51,9 @@ export default function Home() {
           <Button size="lg" onClick={() => handleAction('create')}>
             Create Game
           </Button>
+          <Button size="lg" onClick={() => handleAction('stats')} variant="outline">
+            View Stats
+          </Button>
         </div>
       </main>
       <ErrorModal 
@@ -59,6 +67,10 @@ export default function Home() {
       <CreateGame 
         isOpen={isCreateGameModalOpen}
         onClose={() => setIsCreateGameModalOpen(false)}
+      />
+       <StatsModal
+        isOpen={isStatsModalOpen}
+        onClose={() => setIsStatsModalOpen(false)}
       />
     </div>
   )
