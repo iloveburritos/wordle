@@ -7,10 +7,13 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useWallets } from '@privy-io/react-auth';
+import GameResultGrid from '@/components/GameResultGrid';
+import { GameBoard, GameTile, LetterState } from '@/lib/types';
+import { stringToGameBoard } from '@/lib/stringToGameBoard';
 
 interface PlayerStat {
   tokenId: string;
-  score: string;  // Changed from GameBoard to string
+  score: string;
   user: string;
   timestamp: number;
 }
@@ -75,17 +78,33 @@ export default function Results() {
     return userWallet?.address?.toLowerCase() === address?.toLowerCase();
   };
 
-  const renderScore = (score: string) => {
+  const renderGameTile = (tile: GameTile) => {
+    const bgColorClass = 
+      tile.state === LetterState.CORRECT ? 'bg-green-500' :
+      tile.state === LetterState.PRESENT ? 'bg-yellow-500' :
+      'bg-gray-500';
+
     return (
-      <div className="grid grid-cols-5 gap-1">
-        {score.split('').map((char, idx) => (
-          <div
-            key={idx}
-            className={`w-8 h-8 flex items-center justify-center font-bold text-white
-              ${char === 'G' ? 'bg-green-500' : 
-                char === 'Y' ? 'bg-yellow-500' : 'bg-gray-500'}`}
-          >
-            {char}
+      <div
+        className={`w-8 h-8 flex items-center justify-center font-bold text-white ${bgColorClass} rounded`}
+      >
+        {tile.letter}
+      </div>
+    );
+  };
+
+  const renderGameBoard = (scoreString: string) => {
+    const gameBoard = stringToGameBoard(scoreString);
+    
+    return (
+      <div className="grid gap-1">
+        {gameBoard.map((row, rowIndex) => (
+          <div key={rowIndex} className="grid grid-cols-5 gap-1">
+            {row.map((tile, colIndex) => (
+              <React.Fragment key={`${rowIndex}-${colIndex}`}>
+                {renderGameTile(tile)}
+              </React.Fragment>
+            ))}
           </div>
         ))}
       </div>
@@ -126,7 +145,7 @@ export default function Results() {
                           <span className="text-xs bg-green-600 px-2 py-1 rounded">You</span>
                         )}
                       </h3>
-                      {renderScore(stat.score)}
+                      {renderGameBoard(stat.score)}
                     </div>
                   ))}
                 </div>

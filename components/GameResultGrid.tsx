@@ -2,45 +2,40 @@ import React from 'react';
 import { LetterState } from '../lib/types';
 
 interface GameResultGridProps {
-  board: {
-    letter: string;
-    state: LetterState;
-  }[][];
+  result: string;
 }
 
-export default function GameResultGrid({ board }: GameResultGridProps) {
-  const getStateEmoji = (state: LetterState) => {
+export default function GameResultGrid({ result }: GameResultGridProps) {
+  const getStateClass = (state: string) => {
     switch (state) {
-      case LetterState.CORRECT:
-        return '🟩';
-      case LetterState.PRESENT:
-        return '🟨';
-      case LetterState.ABSENT:
-        return '⬛';
+      case 'G':
+        return 'wordle-tile-correct';
+      case 'Y':
+        return 'wordle-tile-present';
+      case 'X':
+        return 'wordle-tile-absent';
       default:
-        return '⬜';
+        return '';
     }
   };
 
-  // Filter out empty rows (rows where all states are INITIAL)
-  const completedRows = board.filter(row => 
-    row.some(cell => cell.state !== LetterState.INITIAL)
-  );
+  const rows = result.match(/.{1,5}/g) || [];
 
   return (
-    <div className="flex flex-col">
-      {completedRows.map((row, rowIndex) => (
-        <div key={rowIndex} className="flex">
-          {row.map((cell, colIndex) => (
+    <div className="wordle-grid">
+      {rows.map((row, rowIndex) => (
+        <React.Fragment key={rowIndex}>
+          {row.split('').map((state, colIndex) => (
             <div
               key={`${rowIndex}-${colIndex}`}
-              className="text-lg leading-none"
+              className={`wordle-tile ${getStateClass(state)}`}
             >
-              {getStateEmoji(cell.state)}
+              {state}
             </div>
           ))}
-        </div>
+        </React.Fragment>
       ))}
     </div>
   );
-} 
+}
+
