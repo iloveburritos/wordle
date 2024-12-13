@@ -17,15 +17,14 @@ export async function POST(request: Request) {
       );
     }
     // Query Privy for users with this wallet
-    const users = await privy.getUsers(`wallet:${walletAddress.toLowerCase()}`);
+    const users = await privy.getUserByWalletAddress(walletAddress.toLowerCase());
     
-    if (!users || users.length === 0) {
+    if (!users) {
       return NextResponse.json({ email: null }, { status: 200 });
     }
 
     // Get the first user's email
-    const user = users[0];
-    const email = user.email?.address || null;
+    const email = users.email?.address || null;
 
     return NextResponse.json({ email }, { status: 200 });
   } catch (error) {

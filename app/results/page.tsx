@@ -64,15 +64,38 @@ export default function Results() {
 
   useEffect(() => {
     const resolveWalletDisplays = async () => {
-      const displays: { [address: string]: string } = {};
-      for (const [_, stats] of Object.entries(groupedStats)) {
-        for (const stat of stats) {
-          if (!displays[stat.user]) {
-            displays[stat.user] = await formatWalletDisplay(stat.user);
-          }
+      const uniqueWallets = new Set<string>();
+      Object.values(groupedStats).forEach(stats => {
+        stats.forEach(stat => uniqueWallets.add(stat.user));
+      });
+
+      try {
+        // Fetch emails for all wallets
+        const emailsResponse = await fetch('/api/walletToEmails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddresses: Array.from(uniqueWallets) })
+        });
+        
+        const { results } = await emailsResponse.json();
+        
+        // Create display format with email if available
+        const displays: { [address: string]: string } = {};
+        for (const wallet of uniqueWallets) {
+          displays[wallet] = results[wallet] || 
+            `${wallet.substring(0, 6)}...${wallet.substring(wallet.length - 4)}`;
         }
+        
+        setWalletDisplays(displays);
+      } catch (error) {
+        console.error('Error resolving wallet displays:', error);
+        // Fallback to just wallet addresses
+        const displays: { [address: string]: string } = {};
+        uniqueWallets.forEach(wallet => {
+          displays[wallet] = `${wallet.substring(0, 6)}...${wallet.substring(wallet.length - 4)}`;
+        });
+        setWalletDisplays(displays);
       }
-      setWalletDisplays(displays);
     };
     
     if (Object.keys(groupedStats).length > 0) {
