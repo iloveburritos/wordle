@@ -4,7 +4,7 @@
 
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { usePrivy } from "@privy-io/react-auth"
+import { usePrivy, useWallets } from "@privy-io/react-auth"
 import { ethers } from 'ethers'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -19,17 +19,57 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
   const [tokenId, setTokenId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { user } = usePrivy()
+  const { wallets } = useWallets()
 
   const handleCreateGroup = async () => {
-    if (!user?.wallet?.address) return
+    if (!user) {
+      setError('Please login first')
+      return
+    }
     
     setIsLoading(true)
     setError(null)
+    
     try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum)
-      const signer = await provider.getSigner()
+      // Get wallet address based on login type
+      let walletAddress: string | undefined
       
-      const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || ''
+      if (user.email) {
+        // For email users, fetch wallet from API
+        const response = await fetch('/api/emailsToWallets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: user.email.address }),
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to get wallet address')
+        }
+        
+        const data = await response.json()
+        walletAddress = data.walletAddress
+      } else {
+        // For wallet users, use connected wallet
+        walletAddress = wallets[0]?.address
+      }
+      
+      if (!walletAddress) {
+        throw new Error('No wallet address found')
+      }
+
+      // Get provider and signer
+      const provider = new ethers.providers.Web3Provider(
+        await wallets[0].getEthereumProvider()
+      )
+      const signer = provider.getSigner()
+      
+      const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
+      if (!contractAddress) {
+        throw new Error('Contract address not found')
+      }
+
       const contract = new ethers.Contract(
         contractAddress,
         [
@@ -42,7 +82,7 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
 
       // Set up event listener before sending transaction
       contract.once('NewGroup', (tokenId, minter) => {
-        if (minter.toLowerCase() === user.wallet?.address?.toLowerCase()) {
+        if (minter.toLowerCase() === walletAddress?.toLowerCase()) {
           setTokenId(tokenId.toString())
         }
       })
@@ -64,7 +104,7 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
 
       // Then mint a token for the user using the tokenId from the event
       const mintTx = await contract.mint(
-        user.wallet.address,
+        walletAddress,
         newTokenId,
         "0x" // Empty bytes as data
       )
@@ -72,7 +112,7 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
       
     } catch (error) {
       console.error('Error creating group:', error)
-      setError('Failed to register. Please try again.')
+      setError('Failed to create group. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -104,7 +144,7 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
             <>
               {error && (
                 <div className="text-center">
-                  <p className="text-red-500 mb-4">Error creating game: {error}</p>
+                  <p className="text-red-500 mb-4">{error}</p>
                   <Button onClick={handleClose}>Done</Button>
                 </div>
               )}
