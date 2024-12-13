@@ -15,14 +15,8 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
   const [decryptionProgress, setDecryptionProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleClose = () => {
-    if (!isProcessing) {
-      onClose();
-    }
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-black opacity-80">
         <DialogHeader>
           <DialogTitle>View Current Game Stats</DialogTitle>
