@@ -31,7 +31,7 @@ export async function resolveAddress(identifier: string): Promise<string> {
 
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
     try {
-      const response = await fetch('/api/emailToWallet', {
+      const response = await fetch('/api/emailsToWallets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

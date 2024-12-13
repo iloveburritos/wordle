@@ -71,7 +71,7 @@ export default function Results() {
 
       try {
         // Fetch emails for all wallets
-        const emailsResponse = await fetch('/api/walletToEmails', {
+        const emailsResponse = await fetch('/api/walletsToEmails', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ walletAddresses: Array.from(uniqueWallets) })
