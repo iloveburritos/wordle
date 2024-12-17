@@ -122,7 +122,7 @@ export default function Results() {
 
   return (
     <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Game Results</h1>
 
         {Object.keys(groupedStats).length === 0 ? (
@@ -131,19 +131,21 @@ export default function Results() {
             <Button onClick={handlePlayAgain}>Play a Game</Button>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Object.entries(groupedStats).map(([tokenId, stats]) => (
-              <div key={tokenId} className="bg-gray-900 rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Group {tokenId}</h2>
-                <div className="space-y-6">
+              <div key={tokenId} className="bg-gray-900 rounded-lg p-4 hover:bg-gray-800/50 transition-colors">
+                <h2 className="text-lg font-semibold mb-3">Group {tokenId}</h2>
+                <div className="space-y-4">
                   {stats.map((stat, index) => (
-                    <div key={index} className="border-t border-gray-700 pt-4 first:border-0 first:pt-0">
-                      <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
-                        <span>Player: {walletDisplays[stat.user] || stat.user.slice(0, 6) + '...' + stat.user.slice(-4)}</span>
+                    <div key={index} className="border-t border-gray-700 pt-3 first:border-0 first:pt-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-medium">
+                          {walletDisplays[stat.user] || stat.user.slice(0, 6) + '...' + stat.user.slice(-4)}
+                        </span>
                         {isCurrentUser(stat.user) && (
-                          <span className="text-xs bg-green-600 px-2 py-1 rounded">You</span>
+                          <span className="text-xs bg-green-600 px-2 py-0.5 rounded">You</span>
                         )}
-                      </h3>
+                      </div>
                       <GameResultGrid board={parseGameBoard(stat.score)} />
                     </div>
                   ))}
@@ -152,15 +154,6 @@ export default function Results() {
             ))}
           </div>
         )}
-
-        <div className="mt-8 text-center">
-          <Button 
-            onClick={handlePlayAgain}
-            className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded-lg"
-          >
-            Play Again
-          </Button>
-        </div>
       </div>
     </div>
   );
