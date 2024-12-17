@@ -73,6 +73,111 @@
   .container {
     @apply max-w-[80rem] mx-auto px-4;
   }
+
+  .modal-content {
+    @apply bg-black bg-opacity-80 max-w-[90vw] sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px];
+  }
+  
+  .modal-header {
+    @apply flex flex-col space-y-1.5 text-center sm:text-left;
+  }
+  
+  .modal-title {
+    @apply text-2xl font-bold text-white;
+  }
+  
+  .modal-description {
+    @apply text-sm text-gray-300;
+  }
+  
+  .modal-footer {
+    @apply flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full 
+           text-sm font-medium transition-colors focus-visible:outline-none 
+           focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none 
+           disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-white text-black hover:bg-gray-100;
+  }
+
+  .btn-outline {
+    @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .btn-destructive {
+    @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
+  }
+
+  .table-container {
+    @apply w-full max-w-2xl mx-auto;
+  }
+
+  .table-header {
+    @apply py-2 text-left font-medium text-muted-foreground;
+  }
+
+  .table-cell {
+    @apply py-2 text-right;
+  }
+
+  .table-row {
+    @apply hover:bg-transparent;
+  }
+
+  .card-container {
+    @apply w-full max-w-2xl mx-auto;
+  }
+
+  .card-header {
+    @apply pb-2;
+  }
+
+  .card-title {
+    @apply text-xl font-bold;
+  }
+
+  .card-content {
+    @apply p-6;
+  }
+
+  .modal-error-title {
+    @apply text-red-500 font-bold;
+  }
+
+  .modal-close-button {
+    @apply absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background 
+           transition-opacity hover:opacity-100;
+  }
+
+  .modal-loading {
+    @apply flex items-center justify-center mt-4 text-white;
+  }
+
+  .modal-error-message {
+    @apply text-sm text-red-500 mt-1;
+  }
+
+  .input-group {
+    @apply grid gap-2;
+  }
+
+  .input-label {
+    @apply text-sm font-medium text-white;
+  }
+
+  .input-field {
+    @apply flex-grow bg-transparent border border-white/20 rounded-md px-3 py-2
+           text-white placeholder-white/50 focus:outline-none focus:border-white/50;
+  }
+
+  .input-error {
+    @apply text-sm text-red-500 mt-1;
+  }
 }
 
 @layer utilities {
