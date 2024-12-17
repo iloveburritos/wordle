@@ -1,6 +1,6 @@
 import express from "express";
 import { ethers } from "ethers";
-import { WordleABI } from "../public/contractABI.mjs"; // Adjust the path to match your project structure
+import { WordleABI } from "./public/contractABI.mjs"; // Adjust the path to match your project structure
 import dotenv from "dotenv";
 import cors from "cors"; // Import the CORS middleware
 import { customAlphabet } from "nanoid"; // Use customAlphabet to specify characters
