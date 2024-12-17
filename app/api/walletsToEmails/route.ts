@@ -17,12 +17,6 @@ async function resolveIdentifier(address: string): Promise<string | null> {
       return user.email.address;
     }
 
-    // 2. Try ENS using the utility function
-    const ensName = await ethProvider.lookupAddress(address.toLowerCase()); 
-    if (ensName) {
-      return ensName;
-    }
-
     // 3. Return shortened wallet address as fallback
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   } catch (error) {
