@@ -141,7 +141,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
         throw new Error("No valid addresses to send invites to.\n" + resolutionErrors.join('\n'))
       }
 
-      // Get the user's signature for authentication
+      // Get the user's signature for authentication - only once for the batch
       const provider = new ethers.providers.Web3Provider(window.ethereum)
       const signer = await provider.getSigner()
       const address = await signer.getAddress()
@@ -150,20 +150,20 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
       const nonceResponse = await fetch('http://localhost:3001/generate-nonce')
       const { token, nonce } = await nonceResponse.json()
 
-      // Create and sign SIWE message
-      const message = new SiweMessage({
+      // Create and sign SIWE message - include tokenId in the statement
+      const siweMessage = new SiweMessage({
         domain: window.location.host,
         address: address,
-        statement: 'Sign in to invite players',
+        statement: `Sign to verify ownership of token ${tokenId} and send invites`,
         uri: window.location.origin,
         version: '1',
         chainId: 84531,
         nonce: nonce
       })
-      const messageString = message.prepareMessage()
+      const messageString = siweMessage.prepareMessage()
       const signature = await signer.signMessage(messageString)
 
-      // Send invite request to server
+      // Send single batch request to server
       const response = await fetch('http://localhost:3001/mint', {
         method: 'POST',
         headers: {
@@ -184,7 +184,21 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
         throw new Error(result.error || 'Failed to send invites')
       }
 
-      alert(`Successfully invited ${addressesToSend.length} players to group ${tokenId}`)
+      // Define type for result items
+      interface ResultItem {
+        status: 'success' | 'skipped' | 'error';
+      }
+
+      // Show results summary
+      const successCount = result.results.filter((r: ResultItem) => r.status === 'success').length
+      const skippedCount = result.results.filter((r: ResultItem) => r.status === 'skipped').length
+      const errorCount = result.results.filter((r: ResultItem) => r.status === 'error').length
+
+      let resultMessage = `Successfully invited ${successCount} players to group ${tokenId}.`
+      if (skippedCount > 0) resultMessage += `\n${skippedCount} already had access.`
+      if (errorCount > 0) resultMessage += `\n${errorCount} failed to process.`
+
+      alert(resultMessage)
       handleClose()
 
     } catch (error) {
