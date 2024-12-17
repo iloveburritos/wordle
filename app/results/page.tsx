@@ -34,11 +34,10 @@ export default function Results() {
   const [walletDisplays, setWalletDisplays] = useState<{ [address: string]: string }>({});
 
   useEffect(() => {
-    const statsParam = searchParams.get('stats');
-    if (statsParam) {
-      try {
-        const parsedData = JSON.parse(decodeURIComponent(statsParam));
-        console.log("Parsed stats data:", parsedData);
+    try {
+      const storedStats = sessionStorage.getItem('gameResults');
+      if (storedStats) {
+        const parsedData = JSON.parse(storedStats);
         
         if (parsedData.groupedResults) {
           setGroupedStats(parsedData.groupedResults);
@@ -55,12 +54,12 @@ export default function Results() {
           console.error("Invalid data structure received:", parsedData);
           throw new Error("Invalid data structure");
         }
-      } catch (error) {
-        console.error('Error parsing stats:', error);
       }
+    } catch (error) {
+      console.error('Error parsing stats:', error);
     }
     setIsLoading(false);
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     const resolveWalletDisplays = async () => {

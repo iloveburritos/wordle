@@ -263,15 +263,15 @@ export default function ViewScoresButton({
         currentGameId: currentGameId.toString()
       });
       
-      // 7. Navigate to results page with all scores
-      const queryString = encodeURIComponent(JSON.stringify({
+      // Store results in sessionStorage
+      sessionStorage.setItem('gameResults', JSON.stringify({
         results: decryptedResults,
         groupedResults: resultsByGroup,
         currentGameId: currentGameId.toString()
       }));
 
-      onSuccess?.();
-      router.push(`/results?stats=${queryString}`);
+      // Navigate without query params
+      router.push('/results');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       console.error('Error viewing scores:', error);
