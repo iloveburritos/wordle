@@ -67,23 +67,33 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
 
       // Get nonce from server
       const nonceResponse = await fetch("http://localhost:3001/generate-nonce")
-      const { token, nonce } = await nonceResponse.json() // Get both token and nonce
+      const { token, nonce } = await nonceResponse.json()
 
-      // Create SIWE message with the nonce (not the token)
-      const message = new SiweMessage({
+      // Create SIWE message with the nonce
+      const siweMessage = new SiweMessage({
         domain: window.location.host,
         address: walletAddress,
         statement: "Create new Wordle game group",
         uri: window.location.origin,
         version: '1',
-        chainId: 84532, // Base Sepolia
-        nonce: nonce // Use the nonce, not the token
+        chainId: 84532,
+        nonce: nonce
       })
 
-      const messageString = message.prepareMessage()
-      const signature = await signer.signMessage(messageString)
+      const messageString = siweMessage.prepareMessage()
+      
+      // Wrap the signing in a try-catch to handle user rejection
+      let signature: string
+      try {
+        signature = await signer.signMessage(messageString)
+      } catch (signError) {
+        // If user rejects the signature, stop loading but keep modal open
+        setIsLoading(false)
+        setError('Signature rejected. Please try again.')
+        return
+      }
 
-      // Send create group request to server with both token and message
+      // Send create group request to server
       const createResponse = await fetch("http://localhost:3001/create-group", {
         method: "POST",
         headers: {
@@ -93,7 +103,7 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
           walletAddress,
           message: messageString,
           signature,
-          token // Send the JWT token separately
+          token
         }),
       })
 
@@ -113,13 +123,18 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
     }
   }
 
+  // Only close the modal when explicitly called by the user
   const handleClose = () => {
-    setTokenId(null)
-    setError(null)
-    onClose()
+    // Only allow closing if we're not in the middle of creating a game
+    if (!isLoading) {
+      setTokenId(null)
+      setError(null)
+      onClose()
+    }
   }
 
   return (
+    // Force the modal to stay open while loading
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { resolveAddress } from "@/lib/utils"
 import { ethers } from 'ethers'
 import { SiweMessage } from 'siwe'
+import { useWallets } from "@privy-io/react-auth"
 
 interface InviteModalProps {
   isOpen: boolean
@@ -23,6 +24,7 @@ interface Invite {
 }
 
 export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
+  const { wallets } = useWallets()
   const [invites, setInvites] = useState<Invite[]>([{ id: 1, identifier: '' }])
   const [tokenId, setTokenId] = useState('')
   const [errors, setErrors] = useState<{ [key: number]: string }>({})
@@ -38,8 +40,10 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
   }
 
   const handleClose = () => {
-    resetForm()
-    onClose()
+    if (!isLoading) {
+      resetForm()
+      onClose()
+    }
   }
 
   const addInviteField = () => {
@@ -141,16 +145,22 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
         throw new Error("No valid addresses to send invites to.\n" + resolutionErrors.join('\n'))
       }
 
-      // Get the user's signature for authentication - only once for the batch
-      const provider = new ethers.providers.Web3Provider(window.ethereum)
-      const signer = await provider.getSigner()
-      const address = await signer.getAddress()
+      // Replace the provider setup with Privy's wallet provider
+      if (!wallets?.[0]) {
+        throw new Error("No wallet available")
+      }
+
+      const provider = new ethers.providers.Web3Provider(
+        await wallets[0].getEthereumProvider()
+      )
+      const signer = provider.getSigner()
+      const address = await wallets[0].address
 
       // Get nonce from server
       const nonceResponse = await fetch('http://localhost:3001/generate-nonce')
       const { token, nonce } = await nonceResponse.json()
 
-      // Create and sign SIWE message - include tokenId in the statement
+      // Create and sign SIWE message
       const siweMessage = new SiweMessage({
         domain: window.location.host,
         address: address,
@@ -161,9 +171,19 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
         nonce: nonce
       })
       const messageString = siweMessage.prepareMessage()
-      const signature = await signer.signMessage(messageString)
+      
+      // Wrap the signing in a try-catch to handle user rejection
+      let signature: string
+      try {
+        signature = await signer.signMessage(messageString)
+      } catch (signError) {
+        // If user rejects the signature, stop loading but keep modal open
+        setIsLoading(false)
+        alert('Signature rejected. Please try again.')
+        return
+      }
 
-      // Send single batch request to server
+      // Send invites to server
       const response = await fetch('http://localhost:3001/mint', {
         method: 'POST',
         headers: {
@@ -199,7 +219,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
       if (errorCount > 0) resultMessage += `\n${errorCount} failed to process.`
 
       alert(resultMessage)
-      handleClose()
+      handleClose() // Only close after successful completion
 
     } catch (error) {
       console.error("Error in invite process:", error)
