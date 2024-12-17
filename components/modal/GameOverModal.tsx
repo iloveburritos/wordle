@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { EncryptedResult, GameBoard } from '@/lib/types';
 import SubmitScoreModal from './SubmitScoreModal';
 import ViewScoresButton from '@/components/ViewScoresButton';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface GameOverModalProps {
   isOpen: boolean;
@@ -54,6 +54,15 @@ export default function GameOverModal({
       ) : (
         <Dialog open={true} onOpenChange={onClose}>
           <DialogContent className="bg-black opacity-80">
+            <DialogHeader>
+              <DialogTitle>View Results</DialogTitle>
+              <DialogDescription>
+                {isSubmitting 
+                  ? `Decrypting scores... ${decryptionProgress}%`
+                  : "Ready to see how everyone performed?"
+                }
+              </DialogDescription>
+            </DialogHeader>
             <ViewScoresButton
               variant="outline"
               label="See Results"

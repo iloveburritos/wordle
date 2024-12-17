@@ -63,31 +63,76 @@ export default function ViewScoresButton({
   onLoadingChange,
   onProgressChange
 }: ViewScoresButtonProps) {
-  const router = useRouter();
-  const { wallets } = useWallets();
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const { wallets } = useWallets();
+  const userWallet = wallets[0];
+  const router = useRouter();
+
+  const switchToBaseSepolia = async (provider: ethers.providers.Web3Provider) => {
+    try {
+      const baseSepolia = {
+        chainId: '0x14a34',
+        chainName: 'Base Sepolia',
+        rpcUrls: ['https://sepolia.base.org'],
+        nativeCurrency: {
+          name: 'ETH',
+          symbol: 'ETH',
+          decimals: 18
+        },
+        blockExplorerUrls: ['https://sepolia.basescan.org']
+      };
+
+      try {
+        // First try to switch
+        await provider.send('wallet_switchEthereumChain', [{ 
+          chainId: baseSepolia.chainId 
+        }]);
+      } catch (switchError: any) {
+        // If chain doesn't exist, add it
+        if (switchError.code === 4902) {
+          await provider.send('wallet_addEthereumChain', [baseSepolia]);
+        } else {
+          throw switchError;
+        }
+      }
+
+      // Wait for the network to actually change
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Verify we're on the correct network
+      const network = await provider.getNetwork();
+      if (network.chainId !== 84532) { // Base Sepolia chainId
+        throw new Error('Failed to switch to Base Sepolia');
+      }
+    } catch (error) {
+      console.error('Error switching network:', error);
+      throw new Error('Failed to switch to Base Sepolia network');
+    }
+  };
 
   const handleViewScores = async () => {
-    try {
-      setIsLoading(true);
-      onLoadingChange?.(true);
-      setProgress(0);
-      onProgressChange?.(0);
+    if (!userWallet) {
+      onError?.('Please connect your wallet first');
+      return;
+    }
 
-      if (!wallets?.[0]) {
-        throw new Error("Please connect your wallet first");
+    setIsLoading(true);
+    onLoadingChange?.(true);
+    setProgress(0);
+    onProgressChange?.(0);
+
+    try {
+      const userSigner = await userWallet.getEthereumProvider();
+      const provider = new ethers.providers.Web3Provider(userSigner);
+      
+      // Check and switch network if needed
+      const network = await provider.getNetwork();
+      if (network.chainId !== 84532) {
+        await switchToBaseSepolia(provider);
       }
 
       // 1. Get current game ID from smart contract
-      const provider = new ethers.providers.Web3Provider(await wallets[0].getEthereumProvider());
-      const signer = provider.getSigner();
-      
-      // Force switch to Base Sepolia before contract interaction
-      await provider.send("wallet_switchEthereumChain", [
-        { chainId: "0x14A34" }
-      ]);
-      
       const contract = new ethers.Contract(
         process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string,
         ["function currentGame() view returns (uint256)"],
@@ -98,7 +143,7 @@ export default function ViewScoresButton({
       console.log("Current game ID:", currentGameId.toString());
 
       // 2. Get user's token IDs
-      const userTokenIds = await getWalletTokenIds(wallets[0].address);
+      const userTokenIds = await getWalletTokenIds(userWallet.address);
       if (!userTokenIds || userTokenIds.length === 0) {
         throw new Error("You need to be part of a group to view stats");
       }
@@ -212,7 +257,7 @@ export default function ViewScoresButton({
           const decryptedString = await decryptStringWithContractConditions(
             entry.ciphertext,
             entry.datatoencrypthash,
-            signer,
+            provider.getSigner(),
             "baseSepolia"
           );
 

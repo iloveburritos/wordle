@@ -315,3 +315,9 @@ export async function formatWalletDisplay(address: string): Promise<string> {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   }
 }
+
+export async function getCurrentGameId(): Promise<string> {
+  const contract = getContract();
+  const currentGame = await contract.currentGame();
+  return currentGame.toString();
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EncryptedResult, GameBoard, GameResult } from '@/lib/types';
@@ -38,6 +38,8 @@ export default function SubmitScoreModal({
   const { wallets } = useWallets();
   const userWallet = wallets[0];
   const { tokenIds, loading: loadingTokens, error: tokenError } = useWalletTokens(userWallet?.address);
+  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'signing' | 'submitting' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   const handleSubmitScore = async () => {
     if (loadingTokens) {
@@ -55,7 +57,9 @@ export default function SubmitScoreModal({
       return;
     }
 
+    setSubmissionStatus('signing');
     onSubmitStart();
+
     try {
       const response = await fetch('http://localhost:3001/generate-nonce', {
         method: 'GET',
@@ -86,6 +90,8 @@ export default function SubmitScoreModal({
       const message = siweMessage.prepareMessage();
       const signature = await signer.signMessage(message);
 
+      setSubmissionStatus('submitting');
+
       const apiResponse = await fetch('http://localhost:3001/send-score', {
         method: 'POST',
         headers: {
@@ -114,6 +120,7 @@ export default function SubmitScoreModal({
         throw new Error(errorMessage);
       }
 
+      setSubmissionStatus('idle');
       onScoreSubmitted();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit score. Please try again later.';
@@ -125,8 +132,17 @@ export default function SubmitScoreModal({
       }
       
       console.error('Error submitting score:', error);
-      alert(errorMessage);
+      setErrorMessage(errorMessage);
+      setSubmissionStatus('error');
     }
+  };
+
+  const getButtonText = () => {
+    if (loadingTokens) return 'Verifying tokens...';
+    if (submissionStatus === 'signing') return 'Please sign the message...';
+    if (submissionStatus === 'submitting') return 'Submitting score...';
+    if (submissionStatus === 'error') return 'Try Again';
+    return 'Submit Score';
   };
 
   return (
@@ -134,7 +150,9 @@ export default function SubmitScoreModal({
       <DialogContent className="bg-black opacity-80">
         <DialogHeader>
           <DialogTitle>Game Over!</DialogTitle>
-          <DialogDescription>{message}</DialogDescription>
+          <DialogDescription>
+            {submissionStatus === 'error' ? errorMessage : message}
+          </DialogDescription>
         </DialogHeader>
         <div className="flex justify-center">
           <GameResultGrid board={gameResult.board} />
@@ -142,21 +160,12 @@ export default function SubmitScoreModal({
         <DialogFooter className="sm:justify-start">
           <Button 
             onClick={handleSubmitScore} 
-            disabled={isSubmitting || loadingTokens}
+            disabled={isSubmitting || loadingTokens || submissionStatus === 'signing' || submissionStatus === 'submitting'}
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : loadingTokens ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Verifying tokens...
-              </>
-            ) : (
-              'Submit Score'
+            {(isSubmitting || loadingTokens || submissionStatus === 'signing' || submissionStatus === 'submitting') && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
+            {getButtonText()}
           </Button>
         </DialogFooter>
       </DialogContent>
