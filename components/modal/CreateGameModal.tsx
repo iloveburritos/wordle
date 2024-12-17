@@ -21,6 +21,7 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
   const [error, setError] = useState<string | null>(null)
   const { user } = usePrivy()
   const { wallets } = useWallets()
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const handleCreateGroup = async () => {
     if (!user) {
@@ -66,7 +67,7 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
       const signer = provider.getSigner()
 
       // Get nonce from server
-      const nonceResponse = await fetch("http://localhost:3001/generate-nonce")
+      const nonceResponse = await fetch(`${apiUrl}/generate-nonce`)
       const { token, nonce } = await nonceResponse.json()
 
       // Create SIWE message with the nonce
@@ -94,7 +95,7 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
       }
 
       // Send create group request to server
-      const createResponse = await fetch("http://localhost:3001/create-group", {
+      const createResponse = await fetch(`${apiUrl}/create-group`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

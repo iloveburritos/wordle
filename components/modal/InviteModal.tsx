@@ -30,6 +30,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
   const [errors, setErrors] = useState<{ [key: number]: string }>({})
   const [tokenIdError, setTokenIdError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const resetForm = () => {
     setInvites([{ id: 1, identifier: '' }])
@@ -157,7 +158,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
       const address = await wallets[0].address
 
       // Get nonce from server
-      const nonceResponse = await fetch('http://localhost:3001/generate-nonce')
+      const nonceResponse = await fetch(`${apiUrl}/generate-nonce`)
       const { token, nonce } = await nonceResponse.json()
 
       // Create and sign SIWE message
@@ -184,7 +185,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
       }
 
       // Send invites to server
-      const response = await fetch('http://localhost:3001/mint', {
+      const response = await fetch(`${apiUrl}/mint`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -33,6 +33,7 @@ export default function SubmitScoreButton({
   const userWallet = wallets[0];
   const { tokenIds, loading: loadingTokens, error: tokenError } = useWalletTokens(userWallet?.address);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const handleSubmitScore = async () => {
     if (loadingTokens) {
@@ -54,7 +55,7 @@ export default function SubmitScoreButton({
     onSubmitStart();
 
     try {
-      const response = await fetch('http://localhost:3001/generate-nonce', {
+      const response = await fetch(`${apiUrl}/generate-nonce`, {
         method: 'GET',
       });
 
@@ -83,7 +84,7 @@ export default function SubmitScoreButton({
       const message = siweMessage.prepareMessage();
       const signature = await signer.signMessage(message);
 
-      const apiResponse = await fetch('http://localhost:3001/send-score', {
+      const apiResponse = await fetch(`${apiUrl}/send-score`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
