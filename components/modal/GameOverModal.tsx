@@ -31,10 +31,9 @@ export default function GameOverModal({
   const [isPrivySignatureVisible, setIsPrivySignatureVisible] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [modalMessage, setModalMessage] = useState(message);
+  const [isViewingScores, setIsViewingScores] = useState(false);
 
-  // Handle dialog close attempts
   const handleOpenChange = (open: boolean) => {
-    // Only allow closing if we're not in the middle of submitting
     if (!isSubmitting && !isPrivySignatureVisible) {
       onClose();
     }
@@ -49,7 +48,7 @@ export default function GameOverModal({
       if (isVisible && isSubmitting) {
         setModalMessage('Please sign the message to submit your score...');
       } else if (isSubmitting) {
-        setModalMessage('Submitting your score...');
+        setModalMessage('Sending request to the ethernet...');
       }
     };
 
@@ -68,7 +67,6 @@ export default function GameOverModal({
     return () => observer.disconnect();
   }, [isSubmitting]);
 
-  // Reset message when submission status changes
   useEffect(() => {
     if (!isSubmitting && !submissionComplete) {
       setModalMessage(message);
@@ -78,7 +76,7 @@ export default function GameOverModal({
   const handleScoreSubmitted = () => {
     setSubmissionComplete(true);
     setSubmissionError(null);
-    setModalMessage('Ready to see how everyone performed?');
+    setModalMessage('Your score was sent! See who else made it...');
     setIsSubmitting(false);
   };
 
@@ -91,7 +89,12 @@ export default function GameOverModal({
   const handleSubmitStart = () => {
     setIsSubmitting(true);
     setSubmissionError(null);
-    setModalMessage('Submitting your score...');
+    setModalMessage('Ready to see how you performed?');
+  };
+
+  const handleViewScoresStart = () => {
+    setIsViewingScores(true);
+    setModalMessage('Decrypting group scores...');
   };
 
   return (
@@ -103,7 +106,7 @@ export default function GameOverModal({
         <DialogHeader>
           <DialogTitle>Game Over!</DialogTitle>
           <DialogDescription>
-            {submissionError || modalMessage}
+            {submissionError || (isViewingScores ? `${modalMessage} ${decryptionProgress}% complete` : modalMessage)}
           </DialogDescription>
         </DialogHeader>
         
@@ -124,12 +127,16 @@ export default function GameOverModal({
             <ViewScoresButton
               variant="outline"
               label="See Results"
-              onLoadingChange={setIsSubmitting}
+              onLoadingChange={(loading) => {
+                setIsSubmitting(loading);
+                if (loading) handleViewScoresStart();
+              }}
               onProgressChange={setDecryptionProgress}
               onSuccess={onClose}
               onError={(error) => {
                 setSubmissionError(error);
                 setSubmissionComplete(false);
+                setIsViewingScores(false);
               }}
             />
           )}
