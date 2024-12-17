@@ -99,6 +99,7 @@ export default function Home() {
       <InviteModal
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
+        
       />
       <CreateGame 
         isOpen={isCreateGameModalOpen}

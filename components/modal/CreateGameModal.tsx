@@ -8,6 +8,7 @@ import { usePrivy, useWallets } from "@privy-io/react-auth"
 import { ethers } from 'ethers'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SiweMessage } from 'siwe'
 
 interface CreateGameProps {
   isOpen: boolean
@@ -51,68 +52,62 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
         const data = await response.json()
         walletAddress = data.walletAddress
       } else {
-        // For wallet users, use connected wallet
         walletAddress = wallets[0]?.address
       }
-      
+
       if (!walletAddress) {
-        throw new Error('No wallet address found')
+        throw new Error('No wallet address available')
       }
 
-      // Get provider and signer
+      // Get provider for signing
       const provider = new ethers.providers.Web3Provider(
         await wallets[0].getEthereumProvider()
       )
       const signer = provider.getSigner()
-      
-      const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
-      if (!contractAddress) {
-        throw new Error('Contract address not found')
-      }
 
-      const contract = new ethers.Contract(
-        contractAddress,
-        [
-          'function registerMinter()',
-          'function mint(address account, uint256 tokenId, bytes data)',
-          'event NewGroup(uint256 indexed tokenId, address indexed minter)'
-        ],
-        signer
-      )
+      // Get nonce from server
+      const nonceResponse = await fetch("http://localhost:3001/generate-nonce")
+      const { token, nonce } = await nonceResponse.json() // Get both token and nonce
 
-      // Set up event listener before sending transaction
-      contract.once('NewGroup', (tokenId, minter) => {
-        if (minter.toLowerCase() === walletAddress?.toLowerCase()) {
-          setTokenId(tokenId.toString())
-        }
+      // Create SIWE message with the nonce (not the token)
+      const message = new SiweMessage({
+        domain: window.location.host,
+        address: walletAddress,
+        statement: "Create new Wordle game group",
+        uri: window.location.origin,
+        version: '1',
+        chainId: 84532, // Base Sepolia
+        nonce: nonce // Use the nonce, not the token
       })
 
-      // First register as minter
-      const registerTx = await contract.registerMinter()
-      const registerReceipt = await registerTx.wait()
+      const messageString = message.prepareMessage()
+      const signature = await signer.signMessage(messageString)
 
-      // Get the NewGroup event from the receipt to get the tokenId
-      const newGroupEvent = registerReceipt.events?.find(
-        (event: any) => event.event === 'NewGroup'
-      )
-      
-      if (!newGroupEvent) {
-        throw new Error('NewGroup event not found in transaction receipt')
+      // Send create group request to server with both token and message
+      const createResponse = await fetch("http://localhost:3001/create-group", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          walletAddress,
+          message: messageString,
+          signature,
+          token // Send the JWT token separately
+        }),
+      })
+
+      if (!createResponse.ok) {
+        const error = await createResponse.json()
+        throw new Error(error.error || 'Failed to create group')
       }
 
-      const newTokenId = newGroupEvent.args.tokenId
-
-      // Then mint a token for the user using the tokenId from the event
-      const mintTx = await contract.mint(
-        walletAddress,
-        newTokenId,
-        "0x" // Empty bytes as data
-      )
-      await mintTx.wait()
+      const createData = await createResponse.json()
+      setTokenId(createData.tokenId)
       
     } catch (error) {
       console.error('Error creating group:', error)
-      setError('Failed to create group. Please try again.')
+      setError(error instanceof Error ? error.message : 'Failed to create group')
     } finally {
       setIsLoading(false)
     }

@@ -1,4 +1,4 @@
-// components/invite-modal.tsx
+// components/InviteModal.tsx
 
 'use client'
 
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { resolveAddress } from "@/lib/utils"
 import { ethers } from 'ethers'
+import { SiweMessage } from 'siwe'
 
 interface InviteModalProps {
   isOpen: boolean
@@ -103,9 +104,7 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
       const resolvedInvites = await Promise.all(
         invites.map(async (invite) => {
           try {
-            console.log(`Resolving address for: ${invite.identifier}`)
             const resolvedAddress = await resolveAddress(invite.identifier)
-            console.log(`Successfully resolved ${invite.identifier} to ${resolvedAddress}`)
             
             // Check if we've already seen this address
             if (seenAddresses.has(resolvedAddress.toLowerCase())) {
@@ -119,7 +118,6 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
             seenAddresses.add(resolvedAddress.toLowerCase())
             return { ...invite, resolvedAddress, error: null }
           } catch (error) {
-            console.error(`Failed to resolve ${invite.identifier}:`, error)
             return { 
               ...invite, 
               resolvedAddress: null, 
@@ -128,8 +126,6 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
           }
         })
       )
-
-      console.log("Resolved invites:", resolvedInvites)
 
       const resolutionErrors = resolvedInvites
         .filter(invite => invite.error)
@@ -141,43 +137,55 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
         )
         .map((invite) => invite.resolvedAddress)
 
-      console.log("Addresses to send:", addressesToSend)
-      console.log("Resolution errors:", resolutionErrors)
-
       if (addressesToSend.length === 0) {
         throw new Error("No valid addresses to send invites to.\n" + resolutionErrors.join('\n'))
       }
 
-      try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum)
-        const signer = await provider.getSigner()
-        
-        const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || ''
-        const contract = new ethers.Contract(
-          contractAddress,
-          [
-            'function mint(address account, uint256 tokenId, bytes data)'
-          ],
-          signer
-        )
+      // Get the user's signature for authentication
+      const provider = new ethers.providers.Web3Provider(window.ethereum)
+      const signer = await provider.getSigner()
+      const address = await signer.getAddress()
 
-        // Process each address sequentially
-        for (const address of addressesToSend) {
-          const tx = await contract.mint(
-            address,
-            tokenId,
-            "0x" // Empty bytes as data
-          )
-          await tx.wait()
-        }
+      // Get nonce from server
+      const nonceResponse = await fetch('http://localhost:3001/generate-nonce')
+      const { token, nonce } = await nonceResponse.json()
 
-        alert(`Successfully invited ${addressesToSend.length} players to group ${tokenId}`)
-        handleClose()
+      // Create and sign SIWE message
+      const message = new SiweMessage({
+        domain: window.location.host,
+        address: address,
+        statement: 'Sign in to invite players',
+        uri: window.location.origin,
+        version: '1',
+        chainId: 84531,
+        nonce: nonce
+      })
+      const messageString = message.prepareMessage()
+      const signature = await signer.signMessage(messageString)
 
-      } catch (error) {
-        console.error("Error during mint:", error)
-        throw new Error(`Mint failed: ${error instanceof Error ? error.message : String(error)}`)
+      // Send invite request to server
+      const response = await fetch('http://localhost:3001/mint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddresses: addressesToSend,
+          tokenId,
+          message: messageString,
+          signature,
+          token,
+          senderAddress: address
+        }),
+      })
+
+      const result = await response.json()
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send invites')
       }
+
+      alert(`Successfully invited ${addressesToSend.length} players to group ${tokenId}`)
+      handleClose()
 
     } catch (error) {
       console.error("Error in invite process:", error)

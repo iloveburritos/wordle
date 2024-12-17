@@ -23,101 +23,93 @@ app.use(express.json()); // Middleware to parse JSON request bodies
 // POST endpoint to mint NFTs
 app.post("/mint", async (req, res) => {
   try {
-    const { walletAddresses } = req.body;
+    const { 
+      walletAddresses, 
+      tokenId, 
+      data, 
+      message, 
+      signature, 
+      token,
+      senderAddress 
+    } = req.body;
 
-    if (!walletAddresses || !Array.isArray(walletAddresses)) {
-      return res.status(400).json({ 
-        error: "Invalid request body. Provide an array of wallet addresses." 
-      });
-    }
-
-    console.log("Wallet Addresses:", walletAddresses);
-
-    const privateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
-    const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
-    const networkUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
-
-    if (!privateKey || !contractAddress || !networkUrl) {
-      throw new Error("Missing required environment variables.");
-    }
-
-    const provider = new ethers.providers.JsonRpcProvider(networkUrl);
-    const wallet = new ethers.Wallet(privateKey, provider);
-    const contract = new ethers.Contract(contractAddress, WordleABI, wallet);
-
-    console.log("Connected to provider and contract");
-
-    // Process each address sequentially to avoid nonce issues
-    const results = [];
-for (const address of walletAddresses) {
-  try {
-    console.log(`Processing address: ${address}`);
-    
-    // Check if address already has an NFT
-    const balance = await contract.balanceOf(address);
-    
-    if (balance.gt(0)) {
-      console.log(`Address ${address} already has an NFT`);
-      results.push({
-        address,
-        status: 'skipped',
-        message: 'Address already has an NFT'
-      });
-      continue;
-    }
-
-    // Get the latest nonce for this transaction
-    const nonce = await wallet.getTransactionCount("latest");
-    
-    // Estimate gas for this specific transaction
-    let gasEstimate;
+    // 1. Verify JWT token
     try {
-      gasEstimate = await contract.estimateGas.safeMint(address);
-      console.log(`Gas estimate for ${address}: ${gasEstimate.toString()}`);
-    } catch (gasError) {
-      throw new Error(`Gas estimation failed: ${gasError.message}`);
-    }
-    
-    const tx = await contract.safeMint(address, {
-      nonce: nonce,
-      gasLimit: gasEstimate.mul(120).div(100), // Add 20% buffer
-      maxFeePerGas: ethers.utils.parseUnits("1.5", "gwei"),
-      maxPriorityFeePerGas: ethers.utils.parseUnits("1.5", "gwei")
-    });
-
-    console.log(`Transaction sent for ${address}: ${tx.hash}`);
-    const receipt = await tx.wait();
-    
-    if (receipt.status === 0) {
-      throw new Error('Transaction reverted on chain');
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ error: "Invalid JWT token" });
     }
 
-    results.push({
-      address,
-      status: 'success',
-      txHash: tx.hash
-    });
-  } catch (error) {
-    console.error(`Error minting for address ${address}:`, error);
-    results.push({
-      address,
-      status: 'error',
-      error: error.message,
-      details: error.receipt ? `Transaction reverted: ${error.receipt.transactionHash}` : undefined
-    });
-  }
-}
+    // 2. Verify SIWE message
+    const siweMessage = new SiweMessage(message);
+    const verification = await siweMessage.verify({ signature });
+    
+    if (!verification.success || verification.data.address !== senderAddress) {
+      return res.status(401).json({ error: "Invalid signature" });
+    }
 
-    return res.status(200).json({
-      success: true,
-      message: "NFT minting process completed",
-      results: results
-    });
+    // 3. Verify sender is member of the group
+    const provider = new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_BASE_RPC_URL);
+    const contract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
+      WordleABI,
+      provider
+    );
+    
+    const senderBalance = await contract.balanceOf(senderAddress, tokenId);
+    if (senderBalance.eq(0)) {
+      return res.status(403).json({ error: "Sender is not a member of this group" });
+    }
+
+    // 4. Process minting for each address
+    const wallet = new ethers.Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY, provider);
+    const contractWithSigner = contract.connect(wallet);
+    
+    const results = [];
+    for (const address of walletAddresses) {
+      try {
+        const balance = await contract.balanceOf(address, tokenId);
+        if (balance.gt(0)) {
+          results.push({
+            address,
+            status: 'skipped',
+            message: 'Address already has an NFT'
+          });
+          continue;
+        }
+
+        const tx = await contractWithSigner.mint(
+          address,
+          tokenId,
+          "0x",
+          {
+            gasLimit: ethers.utils.hexlify(500000),
+            maxFeePerGas: ethers.utils.parseUnits("1.5", "gwei"),
+            maxPriorityFeePerGas: ethers.utils.parseUnits("1.5", "gwei")
+          }
+        );
+
+        await tx.wait();
+        results.push({
+          address,
+          status: 'success',
+          txHash: tx.hash
+        });
+      } catch (error) {
+        results.push({
+          address,
+          status: 'error',
+          error: error.message
+        });
+      }
+    }
+
+    return res.status(200).json({ success: true, results });
   } catch (error) {
     console.error("Minting error:", error);
     return res.status(500).json({
       success: false,
-      error: error.message || "An unexpected error occurred.",
+      error: error.message || "An unexpected error occurred"
     });
   }
 });
@@ -225,7 +217,10 @@ app.get("/generate-nonce", (req, res) => {
 
     const token = jwt.sign({ nonce }, secret, { expiresIn: "10m" });
 
-    res.status(200).json({ token });
+    res.status(200).json({ 
+      token,
+      nonce
+    });
   } catch (error) {
     console.error("Error generating nonce:", error);
     res.status(500).json({ error: "Failed to generate nonce" });
@@ -354,6 +349,192 @@ app.post("/send-score", async (req, res) => {
     return res.status(500).json({
       success: false,
       error: error.message || "An unexpected error occurred.",
+    });
+  }
+});
+
+// POST endpoint to create a new group
+app.post("/create-group", async (req, res) => {
+  try {
+    const { walletAddress, message, signature, token } = req.body;
+
+    console.log("Received create-group request:", { walletAddress, message });
+
+    // Verify JWT token
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error("JWT_SECRET is not defined");
+    }
+
+    try {
+      jwt.verify(token, secret);
+    } catch (err) {
+      console.error("JWT verification failed:", err);
+      return res.status(401).json({ error: "Invalid JWT" });
+    }
+
+    // Verify SIWE message
+    const siweMessage = new SiweMessage(message);
+    const verification = await siweMessage.verify({ signature });
+
+    if (!verification.success) {
+      console.error("SIWE verification failed:", verification);
+      return res.status(401).json({ error: "Invalid signature" });
+    }
+
+    // Set up contract interaction
+    const provider = new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_BASE_RPC_URL);
+    const ownerPrivateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
+    const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+
+    if (!ownerPrivateKey || !contractAddress) {
+      throw new Error('Missing required environment variables');
+    }
+
+    console.log("Setting up contract interaction with address:", contractAddress);
+
+    const wallet = new ethers.Wallet(ownerPrivateKey, provider);
+    const contract = new ethers.Contract(contractAddress, WordleABI, wallet);
+
+    // Register as minter and get tokenId
+    console.log("Calling registerMinter...");
+    const registerTx = await contract.registerMinter({
+      gasLimit: 500000,
+      maxFeePerGas: ethers.utils.parseUnits("1.5", "gwei"),
+      maxPriorityFeePerGas: ethers.utils.parseUnits("1.5", "gwei")
+    });
+    
+    console.log("Waiting for registerMinter transaction:", registerTx.hash);
+    const registerReceipt = await registerTx.wait();
+    console.log("RegisterMinter receipt received:", registerReceipt);
+
+    const newGroupEvent = registerReceipt.events?.find(
+      (event) => event.event === 'NewGroup'
+    );
+
+    if (!newGroupEvent) {
+      console.error("No NewGroup event in receipt. Events:", registerReceipt.events);
+      throw new Error('NewGroup event not found in transaction receipt');
+    }
+
+    const tokenId = newGroupEvent.args.tokenId.toString();
+    console.log("New group created with tokenId:", tokenId);
+
+    // Register server wallet as an allowed minter for this tokenId
+    console.log("Registering server as minter for tokenId:", tokenId);
+    const allowMinterTx = await contract.setApprovalForAll(wallet.address, true);
+    await allowMinterTx.wait();
+    console.log("Server registered as minter for tokenId:", tokenId);
+
+    // Mint token for the creator
+    console.log("Minting token for creator:", walletAddress);
+    const mintTx = await contract.mint(
+      walletAddress, 
+      tokenId, 
+      "0x",
+      {
+        gasLimit: 500000,
+        maxFeePerGas: ethers.utils.parseUnits("1.5", "gwei"),
+        maxPriorityFeePerGas: ethers.utils.parseUnits("1.5", "gwei")
+      }
+    );
+    
+    console.log("Waiting for mint transaction:", mintTx.hash);
+    const mintReceipt = await mintTx.wait();
+    console.log("Mint receipt received:", mintReceipt);
+
+    return res.status(200).json({
+      success: true,
+      tokenId: tokenId,
+      creatorAddress: walletAddress,
+      mintTxHash: mintTx.hash
+    });
+
+  } catch (error) {
+    console.error("Error creating group:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "An unexpected error occurred"
+    });
+  }
+});
+
+// Add this endpoint
+app.post("/api/mint", async (req, res) => {
+  try {
+    const { 
+      walletAddresses, 
+      tokenId, 
+      message, 
+      signature, 
+      token,
+      senderAddress 
+    } = req.body;
+
+    // Verify JWT token
+    jwt.verify(token, process.env.JWT_SECRET);
+
+    // Verify SIWE message
+    const siweMessage = new SiweMessage(message);
+    const verification = await siweMessage.verify({ signature });
+    
+    if (!verification.success || verification.data.address !== senderAddress) {
+      return res.status(401).json({ error: "Invalid signature" });
+    }
+
+    // Verify sender is member of the group
+    const provider = new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_BASE_RPC_URL);
+    const contract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
+      WordleABI,
+      provider
+    );
+    
+    const senderBalance = await contract.balanceOf(senderAddress, tokenId);
+    if (senderBalance.eq(0)) {
+      return res.status(403).json({ error: "Sender is not a member of this group" });
+    }
+
+    // Process minting for each address
+    const wallet = new ethers.Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY, provider);
+    const contractWithSigner = contract.connect(wallet);
+    
+    const results = [];
+    for (const address of walletAddresses) {
+      try {
+        const balance = await contract.balanceOf(address, tokenId);
+        if (balance.gt(0)) {
+          results.push({
+            address,
+            status: 'skipped',
+            message: 'Address already has an NFT'
+          });
+          continue;
+        }
+
+        const tx = await contractWithSigner.mint(address, tokenId, "0x");
+        await tx.wait();
+        
+        results.push({
+          address,
+          status: 'success',
+          txHash: tx.hash
+        });
+      } catch (error) {
+        results.push({
+          address,
+          status: 'error',
+          error: error.message
+        });
+      }
+    }
+
+    res.status(200).json({ success: true, results });
+  } catch (error) {
+    console.error("Minting error:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "An unexpected error occurred"
     });
   }
 });
