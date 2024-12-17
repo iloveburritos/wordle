@@ -24,6 +24,17 @@ interface Wallet {
   address: string;
 }
 
+function formatTimestamp(timestamp: number): string {
+  const date = new Date(timestamp * 1000); // Convert from Unix timestamp
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
 export default function Results() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -138,13 +149,16 @@ export default function Results() {
                 <div className="space-y-4">
                   {stats.map((stat, index) => (
                     <div key={index} className="border-t border-gray-700 pt-3 first:border-0 first:pt-0">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center justify-between gap-2 mb-2">
                         <span className="text-sm font-medium">
                           {walletDisplays[stat.user] || stat.user.slice(0, 6) + '...' + stat.user.slice(-4)}
+                          {isCurrentUser(stat.user) && (
+                            <span className="ml-2 text-xs bg-green-600 px-2 py-0.5 rounded">You</span>
+                          )}
                         </span>
-                        {isCurrentUser(stat.user) && (
-                          <span className="text-xs bg-green-600 px-2 py-0.5 rounded">You</span>
-                        )}
+                        <span className="text-xs text-gray-400">
+                          {formatTimestamp(stat.timestamp)}
+                        </span>
                       </div>
                       <GameResultGrid board={parseGameBoard(stat.score)} />
                     </div>
