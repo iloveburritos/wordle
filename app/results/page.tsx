@@ -27,8 +27,6 @@ interface Wallet {
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp * 1000); // Convert from Unix timestamp
   return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
     hour12: true
