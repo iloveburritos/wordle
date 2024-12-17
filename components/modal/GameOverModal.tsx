@@ -110,7 +110,7 @@ export default function GameOverModal({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex justify-center">
+        <div className="ml-3">
           <GameResultGrid board={gameResult.board} />
         </div>
 
