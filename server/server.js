@@ -45,7 +45,7 @@ app.post("/mint", async (req, res) => {
     }
 
     // 3. Verify sender is member of the group
-    const provider = new ethers.JSONRpcProvider(process.env.BASE_RPC_URL);
+    const provider = new ethers.providers.JsonRpcProvider(process.env.BASE_RPC_URL);
     const contract = new ethers.Contract(
       process.env.CONTRACT_ADDRESS,
       WordleABI,
@@ -288,7 +288,7 @@ app.post("/send-score", async (req, res) => {
 
     // Submit score to contract
     try {
-      const provider = new ethers.JSONRpcProvider(process.env.BASE_RPC_URL);
+      const provider = new ethers.providers.JsonRpcProvider(process.env.BASE_RPC_URL);
       console.log("PROVIDER: ", provider);
       console.log("BASE_RPC_URL: ", process.env.BASE_RPC_URL);
       const ownerPrivateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
@@ -381,7 +381,7 @@ app.post("/create-group", async (req, res) => {
     }
 
     // Set up contract interaction
-    const provider = new ethers.JSONRpcProvider(process.env.BASE_RPC_URL);
+    const provider = new ethers.providers.JsonRpcProvider(process.env.BASE_RPC_URL);
     const ownerPrivateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
     const contractAddress = process.env.CONTRACT_ADDRESS;
 
@@ -481,7 +481,7 @@ app.post("/api/mint", async (req, res) => {
     }
 
     // Verify sender is member of the group
-    const provider = new ethers.JSONRpcProvider(process.env.BASE_RPC_URL);
+    const provider = new ethers.providers.JsonRpcProvider(process.env.BASE_RPC_URL);
     const contract = new ethers.Contract(
       process.env.CONTRACT_ADDRESS,
       WordleABI,
