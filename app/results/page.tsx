@@ -142,19 +142,21 @@ export default function Results() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Object.entries(groupedStats).map(([tokenId, stats]) => (
-              <div key={tokenId} className="bg-gray-900 rounded-lg p-4 hover:bg-gray-800/50 transition-colors">
-                <h2 className="text-lg font-semibold mb-3">Group {tokenId}</h2>
+              <div key={tokenId} className="results-card">
+                <h2 className="results-group-title">Group {tokenId}</h2>
                 <div className="space-y-4">
                   {stats.map((stat, index) => (
-                    <div key={index} className="border-t border-gray-700 pt-3 first:border-0 first:pt-0">
+                    <div key={index} className="border-t border-gray-700/50 pt-3 first:border-0 first:pt-0">
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-sm font-medium">
-                          {walletDisplays[stat.user] || stat.user.slice(0, 6) + '...' + stat.user.slice(-4)}
+                        <div className="flex items-center gap-2">
+                          <span className="results-player">
+                            {walletDisplays[stat.user] || stat.user.slice(0, 6) + '...' + stat.user.slice(-4)}
+                          </span>
                           {isCurrentUser(stat.user) && (
-                            <span className="ml-2 text-xs bg-green-600 px-2 py-0.5 rounded">You</span>
+                            <span className="results-player-tag">You</span>
                           )}
-                        </span>
-                        <span className="text-xs text-gray-400">
+                        </div>
+                        <span className="results-time">
                           {formatTimestamp(stat.timestamp)}
                         </span>
                       </div>
