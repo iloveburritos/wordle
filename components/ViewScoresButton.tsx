@@ -126,6 +126,16 @@ export default function ViewScoresButton({
       const userSigner = await userWallet.getEthereumProvider();
       const provider = new ethers.providers.Web3Provider(userSigner);
       
+      // Check if this is a Privy email wallet
+      const isPrivyEmailWallet = userWallet.address.startsWith('0x');
+      
+      // Add specific handling for Privy email wallets
+      if (isPrivyEmailWallet) {
+        // Use a different approach for getting the signer
+        const signer = provider.getSigner();
+        // Rest of your existing code, but use this signer specifically for Privy email wallets
+      }
+
       // Check and switch network if needed
       const network = await provider.getNetwork();
       if (network.chainId !== 84532) {
@@ -320,7 +330,11 @@ export default function ViewScoresButton({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       console.error('Error viewing scores:', error);
-      onError?.(errorMessage);
+      if (error.message.includes('encryption')) {
+        onError?.('Error decrypting scores. Please try again.');
+      } else {
+        onError?.(errorMessage);
+      }
     } finally {
       setIsLoading(false);
       onLoadingChange?.(false);

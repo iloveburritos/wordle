@@ -83,7 +83,7 @@ export default function SubmitScoreButton({
       const message = siweMessage.prepareMessage();
       const signature = await signer.signMessage(message);
 
-      const apiResponse = await fetch('http://localhost:3001/submit-score', {
+      const apiResponse = await fetch('http://localhost:3001/send-score', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
