@@ -1,5 +1,5 @@
 import express from "express";
-import { ethers } from "ethers";
+import { ethers  } from "ethers";
 import { WordleABI } from "./public/contractABI.mjs"; // Adjust the path to match your project structure
 import dotenv from "dotenv";
 import cors from "cors"; // Import the CORS middleware
@@ -12,11 +12,7 @@ dotenv.config({ path: './.env.local' });
 const app = express();
 
 // Enable CORS middleware
-app.use(
-  cors({
-    origin: "http://localhost:3000", // Allow requests from your frontend
-  })
-);
+app.use(cors());
 
 app.use(express.json()); // Middleware to parse JSON request bodies
 
@@ -49,9 +45,9 @@ app.post("/mint", async (req, res) => {
     }
 
     // 3. Verify sender is member of the group
-    const provider = new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_BASE_RPC_URL);
+    const provider = new ethers.JSONRpcProvider(process.env.BASE_RPC_URL);
     const contract = new ethers.Contract(
-      process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
+      process.env.CONTRACT_ADDRESS,
       WordleABI,
       provider
     );
@@ -114,10 +110,10 @@ app.post("/mint", async (req, res) => {
   }
 });
 
-const SUBGRAPH_URL = process.env.NEXT_PUBLIC_SUBGRAPH_URL || 'https://api.studio.thegraph.com/query/94961/wordl31155v2/version/latest';
+const SUBGRAPH_URL = process.env.SUBGRAPH_URL || 'https://api.studio.thegraph.com/query/94961/wordl31155v2/version/latest';
 
 if (!SUBGRAPH_URL) {
-  throw new Error('NEXT_PUBLIC_SUBGRAPH_URL is not defined in environment variables');
+  throw new Error('SUBGRAPH_URL is not defined in environment variables');
 }
 
 async function runGraphQueryForWallet(walletAddress) {
@@ -292,7 +288,9 @@ app.post("/send-score", async (req, res) => {
 
     // Submit score to contract
     try {
-      const provider = new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_BASE_RPC_URL);
+      const provider = new ethers.JSONRpcProvider(process.env.BASE_RPC_URL);
+      console.log("PROVIDER: ", provider);
+      console.log("BASE_RPC_URL: ", process.env.BASE_RPC_URL);
       const ownerPrivateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
       
       if (!ownerPrivateKey) {
@@ -300,13 +298,13 @@ app.post("/send-score", async (req, res) => {
       }
 
       const wallet = new ethers.Wallet(ownerPrivateKey, provider);
-      const contract = new ethers.Contract(process.env.NEXT_PUBLIC_CONTRACT_ADDRESS, WordleABI, wallet);
+      const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, WordleABI, wallet);
 
       console.log('Contract interaction details:', {
         walletAddress,
         ciphertext: score.ciphertext,
         dataToEncryptHash: score.dataToEncryptHash,
-        contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
+        contractAddress: process.env.CONTRACT_ADDRESS
       });
       
       // Call setScore with the user's wallet address
@@ -383,9 +381,9 @@ app.post("/create-group", async (req, res) => {
     }
 
     // Set up contract interaction
-    const provider = new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_BASE_RPC_URL);
+    const provider = new ethers.JSONRpcProvider(process.env.BASE_RPC_URL);
     const ownerPrivateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
-    const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+    const contractAddress = process.env.CONTRACT_ADDRESS;
 
     if (!ownerPrivateKey || !contractAddress) {
       throw new Error('Missing required environment variables');
@@ -483,9 +481,9 @@ app.post("/api/mint", async (req, res) => {
     }
 
     // Verify sender is member of the group
-    const provider = new ethers.providers.JsonRpcProvider(process.env.NEXT_PUBLIC_BASE_RPC_URL);
+    const provider = new ethers.JSONRpcProvider(process.env.BASE_RPC_URL);
     const contract = new ethers.Contract(
-      process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
+      process.env.CONTRACT_ADDRESS,
       WordleABI,
       provider
     );
@@ -540,7 +538,7 @@ app.post("/api/mint", async (req, res) => {
 });
 
 // Start the server
-const PORT = process.env.NEXT_PUBLIC_PORT || 3001; // Default to 3001 if the env variable isn't set
+const PORT = process.env.PORT || 3001; // Heroku sets PORT dynamically
 app.listen(PORT, () => {
-  console.log(`Express server running on http://localhost:${PORT}`);
+  console.log(`Express server running on port ${PORT}`);
 });
