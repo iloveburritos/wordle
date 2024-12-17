@@ -264,6 +264,18 @@
            border-none underline underline-offset-4 decoration-gray-700
            hover:decoration-gray-500 shadow-none;
   }
+
+  .score-graphic {
+    @apply flex justify-start;
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .submit-button {
+    @apply bg-green-600 text-white font-semibold py-2 px-6 rounded-lg
+           transition-all duration-200 hover:bg-green-500 hover:scale-[1.02]
+           shadow-md hover:shadow-lg;
+    box-shadow: 0 4px 8px rgba(34, 197, 94, 0.3);
+  }
 }
 
 @layer utilities {
@@ -282,6 +294,17 @@
   .padding-lg { @apply p-12; }
 
   .hide { @apply hidden; }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 /* Media Queries */

@@ -123,7 +123,7 @@ export default function SubmitScoreButton({
       disabled={disabled || isSubmitting}
     >
       {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      {isSubmitting ? 'Decrypting group scores...' : 'Submit Score'}
+      {isSubmitting ? 'Submitting your score...' : 'Submit Score'}
     </Button>
   );
 }

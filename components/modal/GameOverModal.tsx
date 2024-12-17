@@ -48,7 +48,7 @@ export default function GameOverModal({
       if (isVisible && isSubmitting) {
         setModalMessage('Please sign the message to submit your score...');
       } else if (isSubmitting) {
-        setModalMessage('Sending request to the ethernet...');
+        setModalMessage('Please sign the message request...');
       }
     };
 
@@ -94,7 +94,7 @@ export default function GameOverModal({
 
   const handleViewScoresStart = () => {
     setIsViewingScores(true);
-    setModalMessage('Decrypting group scores...');
+    setModalMessage('Submitting your scores...');
   };
 
   return (
@@ -102,45 +102,53 @@ export default function GameOverModal({
       open={isOpen} 
       onOpenChange={handleOpenChange}
     >
-      <DialogContent className="bg-black opacity-80">
-        <DialogHeader>
-          <DialogTitle>Game Over!</DialogTitle>
-          <DialogDescription>
-            {submissionError || (isViewingScores ? `${modalMessage} ${decryptionProgress}% complete` : modalMessage)}
+      <DialogContent className="bg-gray-900/90 border border-gray-700 rounded-lg">
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="text-2xl font-bold tracking-wide">
+            Game Over!
+          </DialogTitle>
+          <DialogDescription className="text-gray-400">
+            {submissionError || (isViewingScores ? 
+              `${modalMessage} ${decryptionProgress}% complete` : 
+              modalMessage
+            )}
           </DialogDescription>
         </DialogHeader>
         
-        <div className="ml-3">
-          <GameResultGrid board={gameResult.board} />
-        </div>
+        <div className="flex flex-col gap-6">
+          <div className="score-graphic">
+            <GameResultGrid board={gameResult.board} />
+          </div>
 
-        <DialogFooter className="sm:justify-start">
-          {!submissionComplete ? (
-            <SubmitScoreButton
-              gameResult={gameResult}
-              onSubmitStart={handleSubmitStart}
-              onSubmitComplete={handleScoreSubmitted}
-              onSubmitError={handleSubmitError}
-              disabled={isSubmitting}
-            />
-          ) : (
-            <ViewScoresButton
-              variant="outline"
-              label="See Results"
-              onLoadingChange={(loading) => {
-                setIsSubmitting(loading);
-                if (loading) handleViewScoresStart();
-              }}
-              onProgressChange={setDecryptionProgress}
-              onSuccess={onClose}
-              onError={(error) => {
-                setSubmissionError(error);
-                setSubmissionComplete(false);
-                setIsViewingScores(false);
-              }}
-            />
-          )}
-        </DialogFooter>
+          <DialogFooter className="sm:justify-start">
+            {!submissionComplete ? (
+              <SubmitScoreButton
+                gameResult={gameResult}
+                onSubmitStart={handleSubmitStart}
+                onSubmitComplete={handleScoreSubmitted}
+                onSubmitError={handleSubmitError}
+                disabled={isSubmitting}
+              />
+            ) : (
+              <ViewScoresButton
+                variant="outline"
+                label="See Results"
+                className="hero-button hero-button-primary"
+                onLoadingChange={(loading) => {
+                  setIsSubmitting(loading);
+                  if (loading) handleViewScoresStart();
+                }}
+                onProgressChange={setDecryptionProgress}
+                onSuccess={onClose}
+                onError={(error) => {
+                  setSubmissionError(error);
+                  setSubmissionComplete(false);
+                  setIsViewingScores(false);
+                }}
+              />
+            )}
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
