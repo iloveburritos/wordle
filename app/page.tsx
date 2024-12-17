@@ -65,30 +65,47 @@ export default function Home() {
   return (
     <div className="grid grid-rows-[1fr_auto] min-h-[calc(100vh-88px)] p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-8 items-center sm:items-start text-center sm:text-left">
-        <h1 className="text-4xl font-bold">Welcome to the on-chain Wordl3!</h1>
-        <p className="text-sm sm:text-base">
-          Share your score in a group chat, without the risk of giving away any hints or clues. Guaranteed way to know you&apos;re the best. Built with Next and for Ethereum. 
+        <h1 className="hero-title">
+          Welcome to the on-chain Wordl3!
+        </h1>
+        <p className="hero-description items-left justify-left">
+          Share your score in a group chat, without the risk of giving away any hints or clues. 
+          Guaranteed way to know you&apos;re the best. Built with Next and for Ethereum.
         </p>
-        <div className="flex gap-4">
-          <Button 
-            size="lg" 
-            onClick={() => handleAction('play')}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Checking...' : 'Play Game'}
-          </Button>
-          <Button size="lg" onClick={() => handleAction('team')}>
-            Invite Players
-          </Button>
-          <Button size="lg" onClick={() => handleAction('create')}>
-            Create Game
-          </Button>
-          <ViewScoresButton 
-  variant="outline" 
-  className="h-11"
-  label="See Results"
-  onError={(error) => alert(error)} 
-/>
+        <div className="button-container">
+          <div className="button-row">
+            <Button 
+              size="lg" 
+              onClick={() => handleAction('play')}
+              disabled={isLoading}
+              className="hero-button hero-button-primary"
+            >
+              {isLoading ? 'Checking...' : 'Play Game'}
+            </Button>
+            <Button 
+              size="lg" 
+              onClick={() => handleAction('create')}
+              className="hero-button hero-button-secondary"
+            >
+              Create Game
+            </Button>
+          </div>
+          <div className="button-row">
+            <ViewScoresButton 
+              variant="outline" 
+              className="h-11 hero-button hero-button-muted"
+              label="See Results"
+              onError={(error) => alert(error)} 
+            />
+            <Button 
+              variant="outline"
+              size="lg" 
+              onClick={() => handleAction('team')}
+              className="hero-button hero-button-muted"
+            >
+              Invite Players
+            </Button>
+          </div>
         </div>
       </main>
       
