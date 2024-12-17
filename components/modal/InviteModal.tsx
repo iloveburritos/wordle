@@ -151,10 +151,10 @@ export default function InviteModal({ isOpen, onClose }: InviteModalProps) {
         throw new Error("No wallet available")
       }
 
-      const provider = new ethers.providers.Web3Provider(
+      const provider = new ethers.BrowserProvider(
         await wallets[0].getEthereumProvider()
       )
-      const signer = provider.getSigner()
+      const signer = await provider.getSigner()
       const address = await wallets[0].address
 
       // Get nonce from server

@@ -69,7 +69,7 @@ export default function ViewScoresButton({
   const userWallet = wallets[0];
   const router = useRouter();
 
-  const switchToBaseSepolia = async (provider: ethers.providers.Web3Provider) => {
+  const switchToBaseSepolia = async (provider: ethers.BrowserProvider) => {
     try {
       const baseSepolia = {
         chainId: '0x14a34',
@@ -102,7 +102,7 @@ export default function ViewScoresButton({
 
       // Verify we're on the correct network
       const network = await provider.getNetwork();
-      if (network.chainId !== 84532) { // Base Sepolia chainId
+      if (Number(network.chainId) !== 84532) { // Base Sepolia chainId
         throw new Error('Failed to switch to Base Sepolia');
       }
     } catch (error) {
@@ -124,7 +124,9 @@ export default function ViewScoresButton({
 
     try {
       const userSigner = await userWallet.getEthereumProvider();
-      const provider = new ethers.providers.Web3Provider(userSigner);
+      const provider = new ethers.BrowserProvider(
+        await wallets[0].getEthereumProvider()
+      );
       
       // Check if this is a Privy email wallet
       const isPrivyEmailWallet = userWallet.address.startsWith('0x');
@@ -138,7 +140,7 @@ export default function ViewScoresButton({
 
       // Check and switch network if needed
       const network = await provider.getNetwork();
-      if (network.chainId !== 84532) {
+      if (Number(network.chainId) !== 84532) {
         await switchToBaseSepolia(provider);
       }
 
@@ -267,7 +269,7 @@ export default function ViewScoresButton({
           const decryptedString = await decryptStringWithContractConditions(
             entry.ciphertext,
             entry.datatoencrypthash,
-            provider.getSigner(),
+            await provider.getSigner(),
             "baseSepolia"
           );
 
@@ -327,10 +329,10 @@ export default function ViewScoresButton({
 
       // Navigate without query params
       router.push('/results');
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       console.error('Error viewing scores:', error);
-      if (error.message.includes('encryption')) {
+      if (error.message?.includes('encryption')) {
         onError?.('Error decrypting scores. Please try again.');
       } else {
         onError?.(errorMessage);

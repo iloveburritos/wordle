@@ -61,9 +61,8 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
       }
 
       // Get provider for signing
-      const provider = new ethers.providers.Web3Provider(
-        await wallets[0].getEthereumProvider()
-      )
+      const provider = await wallets[0].getEthersProvider()
+      
       const signer = provider.getSigner()
 
       // Get nonce from server

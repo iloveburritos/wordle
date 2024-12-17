@@ -25,7 +25,7 @@ export async function resolveAddress(identifier: string): Promise<string> {
     }
   }
 
-  if (ethers.utils.isAddress(identifier)) {
+  if (ethers.isAddress(identifier)) {
     return identifier
   }
 
@@ -235,7 +235,7 @@ export async function checkHasPlayed(walletAddress: string): Promise<boolean> {
 export async function reverseResolveENS(address: string): Promise<string | null> {
   try {
     // Validate the address
-    if (!ethers.utils.isAddress(address)) {
+    if (!ethers.isAddress(address)) {
       throw new Error('Invalid Ethereum address');
     }
 
@@ -253,7 +253,7 @@ export async function reverseResolveENS(address: string): Promise<string | null>
 export async function reverseResolvePrivyEmail(address: string): Promise<string | null> {
   try {
     // Validate the address
-    if (!ethers.utils.isAddress(address)) {
+    if (!ethers.isAddress(address)) {
       throw new Error('Invalid Ethereum address');
     }
 

@@ -17,8 +17,8 @@ if (!contractAddress) {
     throw new Error("CONTRACT_ADDRESS is not defined in the environment variables.");
 }
 
-export const baseProvider = new ethers.providers.JsonRpcProvider(baseRpcUrl);
-export const ethProvider = new ethers.providers.JsonRpcProvider(ethRpcUrl);
+export const baseProvider = new ethers.JsonRpcProvider(baseRpcUrl);
+export const ethProvider = new ethers.JsonRpcProvider(ethRpcUrl);
 
 export const getContract = (signerOrProvider = baseProvider) => {
     return new ethers.Contract(contractAddress, WordleABI, signerOrProvider);

@@ -67,8 +67,8 @@ export default function SubmitScoreButton({
       const { nonce } = JSON.parse(atob(token.split('.')[1]));
 
       const userSigner = await userWallet.getEthereumProvider();
-      const provider = new ethers.providers.Web3Provider(userSigner);
-      const signer = provider.getSigner();
+      const provider = new ethers.BrowserProvider(userSigner);
+      const signer = await provider.getSigner();
       const address = userWallet.address;
 
       const siweMessage = new SiweMessage({
@@ -77,7 +77,7 @@ export default function SubmitScoreButton({
         statement: 'Sign in with Ethereum to submit your score.',
         uri: typeof window !== 'undefined' ? window.location.origin : '',
         version: '1',
-        chainId: await signer.getChainId(),
+        chainId: Number((await provider.getNetwork()).chainId),
         nonce,
       });
 
