@@ -16,7 +16,7 @@ export default function GameResultGrid({ board }: GameResultGridProps) {
       case LetterState.PRESENT:
         return '🟨';
       case LetterState.ABSENT:
-        return '⬛';
+        return '⬜';
       default:
         return '⬜';
     }
@@ -28,9 +28,9 @@ export default function GameResultGrid({ board }: GameResultGridProps) {
   );
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col items-start">
       {completedRows.map((row, rowIndex) => (
-        <div key={rowIndex} className="flex">
+        <div key={rowIndex} className="flex w-full justify-left">
           {row.map((cell, colIndex) => (
             <div
               key={`${rowIndex}-${colIndex}`}
