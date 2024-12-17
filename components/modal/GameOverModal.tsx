@@ -5,8 +5,6 @@ import { EncryptedResult, GameBoard } from '@/lib/types';
 import SubmitScoreButton from '@/components/SubmitScoreButton'; 
 import ViewScoresButton from '@/components/ViewScoresButton';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from 'lucide-react';
 import GameResultGrid from '@/components/GameResultGrid';
 
 interface GameOverModalProps {
@@ -32,11 +30,27 @@ export default function GameOverModal({
   const [submissionComplete, setSubmissionComplete] = useState(false);
   const [isPrivySignatureVisible, setIsPrivySignatureVisible] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [modalMessage, setModalMessage] = useState(message);
+
+  // Handle dialog close attempts
+  const handleOpenChange = (open: boolean) => {
+    // Only allow closing if we're not in the middle of submitting
+    if (!isSubmitting && !isPrivySignatureVisible) {
+      onClose();
+    }
+  };
 
   useEffect(() => {
     const checkForPrivyModal = () => {
       const privyModal = document.querySelector('[data-privy-dialog]');
-      setIsPrivySignatureVisible(!!privyModal);
+      const isVisible = !!privyModal;
+      setIsPrivySignatureVisible(isVisible);
+      
+      if (isVisible && isSubmitting) {
+        setModalMessage('Please sign the message to submit your score...');
+      } else if (isSubmitting) {
+        setModalMessage('Submitting your score...');
+      }
     };
 
     checkForPrivyModal();
@@ -52,35 +66,44 @@ export default function GameOverModal({
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [isSubmitting]);
+
+  // Reset message when submission status changes
+  useEffect(() => {
+    if (!isSubmitting && !submissionComplete) {
+      setModalMessage(message);
+    }
+  }, [isSubmitting, submissionComplete, message]);
 
   const handleScoreSubmitted = () => {
     setSubmissionComplete(true);
     setSubmissionError(null);
+    setModalMessage('Ready to see how everyone performed?');
+    setIsSubmitting(false);
   };
 
   const handleSubmitError = (error: string) => {
     setSubmissionError(error);
     setIsSubmitting(false);
+    setModalMessage(error);
   };
 
   const handleSubmitStart = () => {
     setIsSubmitting(true);
     setSubmissionError(null);
+    setModalMessage('Submitting your score...');
   };
 
-  if (!isOpen) return null;
-
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={handleOpenChange}
+    >
       <DialogContent className="bg-black opacity-80">
         <DialogHeader>
           <DialogTitle>Game Over!</DialogTitle>
           <DialogDescription>
-            {submissionError ? submissionError : 
-             isSubmitting ? 'Submitting your score...' :
-             submissionComplete ? 'Ready to see how everyone performed?' :
-             message}
+            {submissionError || modalMessage}
           </DialogDescription>
         </DialogHeader>
         
@@ -95,7 +118,7 @@ export default function GameOverModal({
               onSubmitStart={handleSubmitStart}
               onSubmitComplete={handleScoreSubmitted}
               onSubmitError={handleSubmitError}
-              disabled={isSubmitting || isPrivySignatureVisible}
+              disabled={isSubmitting}
             />
           ) : (
             <ViewScoresButton
