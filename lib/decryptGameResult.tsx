@@ -1,6 +1,6 @@
 // components/decryptGameResult.tsx
 
-import { LetterState, GameBoard, EncryptedGameResult } from '../lib/types';
+import { EncryptedGameResult } from '../lib/types';
 
 export function decryptGameResult(encryptedString: EncryptedGameResult): string {
   // Map each character back to the corresponding LetterState

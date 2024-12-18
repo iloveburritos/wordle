@@ -31,7 +31,6 @@ export default function Game() {
 
   const [currentRowIndex, setCurrentRowIndex] = useState(0);
   const [message, setMessage] = useState('');
-  const [grid, setGrid] = useState('');
   const [shakeRowIndex, setShakeRowIndex] = useState(-1);
   const [success, setSuccess] = useState(false);
   const [letterStates, setLetterStates] = useState<Record<string, LetterState>>({});
@@ -39,7 +38,6 @@ export default function Game() {
   const [isGameOverModalOpen, setIsGameOverModalOpen] = useState(false);
   const [gameOverMessage, setGameOverMessage] = useState('');
   const [encryptedResult, setEncryptedResult] = useState<EncryptedResult | null>(null);
-  const [isScoreSubmitted, setIsScoreSubmitted] = useState(false);
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
   const [viewScoresProgress, setViewScoresProgress] = useState(0);
   const [isViewingScores, setIsViewingScores] = useState(false);
@@ -47,55 +45,22 @@ export default function Game() {
   // Construct the current row based on the current row index
   const currentRow = useMemo(() => board[currentRowIndex], [board, currentRowIndex]);
 
-  // Key handling
-  const onKey = useCallback(
-    (key: string) => {
-      if (!allowInput) return;
-      if (/^[a-zA-Z]$/.test(key)) {
-        fillTile(key.toLowerCase());
-      } else if (key === 'Backspace') {
-        clearTile();
-      } else if (key === 'Enter') {
-        completeRow();
-      }
-    },
-    [allowInput, currentRowIndex, board]
-  );
-
-  useEffect(() => {
-    const handleKeyup = (e: KeyboardEvent) => onKey(e.key);
-    window.addEventListener('keyup', handleKeyup);
-    return () => window.removeEventListener('keyup', handleKeyup);
-  }, [onKey]);
-
-  // Function to handle sending result to API
-  
-  /*const sendResultToAPI = async (encryptedResult: string, isSuccessful: boolean, score: number) => {
-    try {
-      const response = await fetch('/api/submit-result', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          encryptedResult,
-          isSuccessful,
-          score,
-        }),
-      });
-
-      if (!response.ok) {
-        console.error('Failed to send result:', response.statusText);
-      } else {
-        console.log('Result sent successfully');
-      }
-    } catch (error) {
-      console.error('Error sending result:', error);
+  // After state declarations and before fillTile
+  const showMessage = useCallback((msg: string, time = 1000) => {
+    setMessage(msg);
+    if (time > 0) {
+      setTimeout(() => setMessage(''), time);
     }
-  };*/
+  }, []);
 
-  // Functions to handle tile filling, clearing, and row completion
-  const fillTile = (letter: string) => {
+  const shake = useCallback(() => {
+    setShakeRowIndex(currentRowIndex);
+    setTimeout(() => setShakeRowIndex(-1), 1000);
+  }, [currentRowIndex]);
+
+  // Then your existing fillTile, clearTile functions...
+
+  const fillTile = useCallback((letter: string) => {
     setBoard((prevBoard) => {
       const newBoard = [...prevBoard];
       const currentRow = [...newBoard[currentRowIndex]];
@@ -106,9 +71,9 @@ export default function Game() {
       }
       return newBoard;
     });
-  };
+  }, [currentRowIndex]);
 
-  const clearTile = () => {
+  const clearTile = useCallback(() => {
     setBoard((prevBoard) => {
       const newBoard = [...prevBoard];
       const currentRow = [...newBoard[currentRowIndex]];
@@ -121,9 +86,9 @@ export default function Game() {
       newBoard[currentRowIndex] = currentRow;
       return newBoard;
     });
-  };
+  }, [currentRowIndex]);
 
-  const completeRow = () => {
+  const completeRow = useCallback(() => {
     if (currentRow.every((tile) => tile.letter)) {
       const guess = currentRow.map((tile) => tile.letter).join('');
       if (!allWords.includes(guess) && guess !== answer) {
@@ -185,7 +150,6 @@ export default function Game() {
             ? ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][currentRowIndex] 
             : `The answer was ${answer.toUpperCase()}`;
           setGameOverMessage(message);
-          setGrid(genResultGrid());
           setSuccess(finalSuccess);
           
           // Encrypt the game result
@@ -196,7 +160,6 @@ export default function Game() {
           // Ensure modal shows up after encryption
           setGameOverMessage(message);
           setIsGameOverModalOpen(true);
-          
         }, 1600);
       } else if (currentRowIndex < board.length - 1) {
         setCurrentRowIndex((prevIndex) => prevIndex + 1);
@@ -206,19 +169,35 @@ export default function Game() {
       shake();
       showMessage('Not enough letters');
     }
-  };
+  }, [
+    currentRow, 
+    answer, 
+    board, 
+    currentRowIndex, 
+    shake,
+    showMessage
+  ]);
 
-  const showMessage = (msg: string, time = 1000) => {
-    setMessage(msg);
-    if (time > 0) {
-      setTimeout(() => setMessage(''), time);
-    }
-  };
+  // Now define onKey after the other functions
+  const onKey = useCallback(
+    (key: string) => {
+      if (!allowInput) return;
+      if (/^[a-zA-Z]$/.test(key)) {
+        fillTile(key.toLowerCase());
+      } else if (key === 'Backspace') {
+        clearTile();
+      } else if (key === 'Enter') {
+        completeRow();
+      }
+    },
+    [allowInput, fillTile, clearTile, completeRow]
+  );
 
-  const shake = () => {
-    setShakeRowIndex(currentRowIndex);
-    setTimeout(() => setShakeRowIndex(-1), 1000);
-  };
+  useEffect(() => {
+    const handleKeyup = (e: KeyboardEvent) => onKey(e.key);
+    window.addEventListener('keyup', handleKeyup);
+    return () => window.removeEventListener('keyup', handleKeyup);
+  }, [onKey]);
 
   const genResultGrid = () => {
     return board
@@ -227,13 +206,7 @@ export default function Game() {
       .join('\n');
   };
 
-  const handleShare = () => {
-    console.log('Share functionality to be implemented');
-  };
 
-  const handleSeeResults = () => {
-    console.log('See results functionality to be implemented');
-  };
 
   return (
     <div className="pt-4">
@@ -297,9 +270,8 @@ export default function Game() {
           message={gameOverMessage}
         />
       )}
-      <StatsModal
-        isOpen={isStatsModalOpen}
-        onClose={() => setIsStatsModalOpen(false)}
+      <StatsModal 
+        onClose={() => setIsStatsModalOpen(false)} 
       />
     </div>
   );

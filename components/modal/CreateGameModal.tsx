@@ -5,7 +5,6 @@
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { usePrivy, useWallets } from "@privy-io/react-auth"
-import { ethers } from 'ethers'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SiweMessage } from 'siwe'
@@ -86,7 +85,7 @@ export default function CreateGame({ isOpen, onClose }: CreateGameProps) {
       let signature: string
       try {
         signature = await signer.signMessage(messageString)
-      } catch (signError) {
+      } catch (_signError) {
         // If user rejects the signature, stop loading but keep modal open
         setIsLoading(false)
         setError('Signature rejected. Please try again.')

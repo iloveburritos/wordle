@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrivyClient } from '@privy-io/server-auth';
 
-import { ethProvider } from '@/lib/provider';
-
 
 const privy = new PrivyClient(
   process.env.PRIVY_APP_ID!,

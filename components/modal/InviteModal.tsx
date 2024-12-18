@@ -3,7 +3,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Mail, Globe, Wallet, Share2, Plus, Loader2 } from 'lucide-react'
+import {Share2, Plus, Loader2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"

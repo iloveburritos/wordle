@@ -52,6 +52,7 @@ export const WalletButton: React.FC<WalletButtonProps> = ({ className }) => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleEmailLogin = async () => {
     await login();
   };

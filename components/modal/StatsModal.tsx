@@ -7,16 +7,15 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import ViewScoresButton from '@/components/ViewScoresButton';
 
 interface StatsModalProps {
-  isOpen: boolean;
   onClose: () => void;
 }
 
-export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
+export default function StatsModal({ onClose }: StatsModalProps) {
   const [decryptionProgress, setDecryptionProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog onOpenChange={onClose}>
       <DialogContent className="bg-black opacity-80">
         <DialogHeader>
           <DialogTitle>View Current Game Stats</DialogTitle>
@@ -33,7 +32,6 @@ export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
             label="See Group Stats"
             onLoadingChange={setIsProcessing}
             onProgressChange={setDecryptionProgress}
-            onSuccess={onClose}
             onError={(error) => alert(error)}
           />
         </DialogFooter>

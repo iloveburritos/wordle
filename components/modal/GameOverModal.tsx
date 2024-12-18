@@ -33,7 +33,7 @@ export default function GameOverModal({
   const [modalMessage, setModalMessage] = useState(message);
   const [isViewingScores, setIsViewingScores] = useState(false);
 
-  const handleOpenChange = (open: boolean) => {
+  const handleOpenChange = () => {
     if (!isSubmitting && !isPrivySignatureVisible) {
       onClose();
     }

@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { useWallets } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
-import { fetchScoresForCurrentGame, getWalletTokenIds } from '@/lib/utils';
+import { getWalletTokenIds } from '@/lib/utils';
 import { decryptStringWithContractConditions } from '@/lib/litUtils';
 import { Loader2 } from 'lucide-react';
 
@@ -11,10 +11,10 @@ interface ViewScoresButtonProps {
   variant?: 'default' | 'outline' | 'ghost';
   className?: string;
   label?: string;
-  onSuccess?: () => void;
   onError?: (error: string) => void;
   onLoadingChange?: (isLoading: boolean) => void;
   onProgressChange?: (progress: number) => void;
+  onSuccess?: () => void;
 }
 
 interface NewUserEntry {
@@ -54,14 +54,15 @@ interface SubgraphResponse {
   };
 }
 
+
 export default function ViewScoresButton({ 
   variant = 'outline',
   className = '',
   label = 'See Results',
-  onSuccess,
   onError,
   onLoadingChange,
-  onProgressChange
+  onProgressChange,
+  onSuccess
 }: ViewScoresButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -88,9 +89,9 @@ export default function ViewScoresButton({
         await provider.send('wallet_switchEthereumChain', [{ 
           chainId: baseSepolia.chainId 
         }]);
-      } catch (switchError: any) {
+      } catch (switchError: unknown) {
         // If chain doesn't exist, add it
-        if (switchError.code === 4902) {
+        if (switchError && typeof switchError === 'object' && 'code' in switchError && switchError.code === 4902) {
           await provider.send('wallet_addEthereumChain', [baseSepolia]);
         } else {
           throw switchError;
@@ -123,7 +124,6 @@ export default function ViewScoresButton({
     onProgressChange?.(0);
 
     try {
-      const userSigner = await userWallet.getEthereumProvider();
       const provider = new ethers.BrowserProvider(
         await wallets[0].getEthereumProvider()
       );
@@ -133,9 +133,8 @@ export default function ViewScoresButton({
       
       // Add specific handling for Privy email wallets
       if (isPrivyEmailWallet) {
-        // Use a different approach for getting the signer
-        const signer = provider.getSigner();
-        // Rest of your existing code, but use this signer specifically for Privy email wallets
+        // Only get signer if you're going to use it
+        await provider.getSigner();
       }
 
       // Check and switch network if needed
@@ -329,10 +328,11 @@ export default function ViewScoresButton({
 
       // Navigate without query params
       router.push('/results');
-    } catch (error: any) {
+      onSuccess?.();
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       console.error('Error viewing scores:', error);
-      if (error.message?.includes('encryption')) {
+      if (error instanceof Error && error.message?.includes('encryption')) {
         onError?.('Error decrypting scores. Please try again.');
       } else {
         onError?.(errorMessage);

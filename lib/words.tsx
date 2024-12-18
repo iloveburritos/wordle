@@ -12,7 +12,7 @@ export function getWordOfTheDay() {
       } else {
         return query;
       }
-    } catch (e) {
+    } catch (_error) {
       alert(`Malformed encoded word query. ${defaultMessage}`);
     }
   }

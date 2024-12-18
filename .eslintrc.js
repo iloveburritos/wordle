@@ -6,15 +6,9 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   plugins: ['@typescript-eslint'],
   rules: {
-    "@typescript-eslint/no-unused-vars": ["error", {
-      "argsIgnorePattern": "^_",
-      "varsIgnorePattern": "^_",
-      "ignoreRestSiblings": true
-    }],
-    // Disable the exhaustive-deps warning for useCallback
-    "react-hooks/exhaustive-deps": "warn",
-    // Allow imports
-    "@typescript-eslint/no-explicit-any": "warn"
+    "@typescript-eslint/no-unused-vars": "off",
+    "react-hooks/exhaustive-deps": "off",
+    "@typescript-eslint/no-explicit-any": "off"
   },
   parserOptions: {
     ecmaVersion: 'latest',

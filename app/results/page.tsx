@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useWallets } from '@privy-io/react-auth';
 import GameResultGrid from '@/components/GameResultGrid';
 import { GameBoard, LetterState } from '@/lib/types';
-import { formatWalletDisplay } from '@/lib/utils';
 
 interface PlayerStat {
   tokenId: string;
@@ -35,7 +33,6 @@ function formatTimestamp(timestamp: number): string {
 
 export default function Results() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [groupedStats, setGroupedStats] = useState<GroupedStats>({});
   const [isLoading, setIsLoading] = useState(true);
   const { wallets } = useWallets();

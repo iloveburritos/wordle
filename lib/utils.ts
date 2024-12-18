@@ -3,7 +3,7 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { ethers } from 'ethers'
-import { ethProvider, baseProvider, getContract } from './provider'
+import { ethProvider, getContract } from './provider'
 import { SUBGRAPH_URL } from './constants'
 
 // Combines class names
@@ -58,14 +58,30 @@ export async function resolveAddress(identifier: string): Promise<string> {
   throw new Error('Invalid identifier format')
 }
 
+// First, let's define some interfaces for our GraphQL responses
+export interface ScoreAddedEntry {
+  id: string;
+  gameId: string;
+  user: string;
+  ciphertext: string;
+  datatoencrypthash: string;
+  blockTimestamp: string;
+}
+
+interface NewUserEntry {
+  id: string;
+  tokenId: string;
+  user: string;
+}
+
 export async function fetchScoresForCurrentGame() {
   try {
     const contract = getContract();
 
     // Get current game with error handling
-    const currentGame = await contract.currentGame().catch((error: any) => {
+    const currentGame = await contract.currentGame().catch((error: Error | unknown) => {
       console.error('Error fetching current game:', error);
-      throw new Error(`Failed to fetch current game: ${error.message}`);
+      throw new Error(`Failed to fetch current game: ${error instanceof Error ? error.message : String(error)}`);
     });
 
     console.log(`Current Game: ${currentGame.toString()}`);
@@ -197,7 +213,7 @@ export async function getWalletTokenIds(walletAddress: string): Promise<number[]
       return [];
     }
 
-    const tokenIds = result.data.newUsers.map((user: any) => Number(user.tokenId));
+    const tokenIds = result.data.newUsers.map((user: NewUserEntry) => Number(user.tokenId));
     console.log(`Token IDs for wallet ${walletAddress}:`, tokenIds);
 
     return tokenIds;
