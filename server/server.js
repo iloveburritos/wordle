@@ -45,7 +45,7 @@ app.post("/mint", async (req, res) => {
     }
 
     // 3. Verify sender is member of the group
-    const provider = new ethers.providers.JsonRpcProvider(process.env.BASE_RPC_URL);
+    const provider = new ethers.JsonRpcProvider(process.env.BASE_RPC_URL);
     const contract = new ethers.Contract(
       process.env.CONTRACT_ADDRESS,
       WordleABI,
@@ -53,7 +53,7 @@ app.post("/mint", async (req, res) => {
     );
     
     const senderBalance = await contract.balanceOf(senderAddress, tokenId);
-    if (senderBalance.eq(0)) {
+    if (senderBalance === 0n) {
       return res.status(403).json({ error: "Sender is not a member of this group" });
     }
 
@@ -65,7 +65,7 @@ app.post("/mint", async (req, res) => {
     for (const address of walletAddresses) {
       try {
         const balance = await contract.balanceOf(address, tokenId);
-        if (balance.gt(0)) {
+        if (balance > 0n) {
           results.push({
             address,
             status: 'skipped',
@@ -79,13 +79,27 @@ app.post("/mint", async (req, res) => {
           tokenId,
           "0x",
           {
-            gasLimit: ethers.utils.hexlify(500000),
-            maxFeePerGas: ethers.utils.parseUnits("1.5", "gwei"),
-            maxPriorityFeePerGas: ethers.utils.parseUnits("1.5", "gwei")
+            gasLimit: 500000n,
+            maxFeePerGas: ethers.parseUnits("1.5", "gwei"),
+            maxPriorityFeePerGas: ethers.parseUnits("1.5", "gwei")
           }
         );
 
         await tx.wait();
+        const mintReceipt = await tx.wait();
+        const transferEvent = mintReceipt.logs
+          .map(log => {
+            try {
+              return contract.interface.parseLog({
+                topics: log.topics,
+                data: log.data
+              });
+            } catch (e) {
+              return null;
+            }
+          })
+          .find(event => event?.name === 'TransferSingle');
+
         results.push({
           address,
           status: 'success',
@@ -288,7 +302,7 @@ app.post("/send-score", async (req, res) => {
 
     // Submit score to contract
     try {
-      const provider = new ethers.providers.JsonRpcProvider(process.env.BASE_RPC_URL);
+      const provider = new ethers.JsonRpcProvider(process.env.BASE_RPC_URL);
       console.log("PROVIDER: ", provider);
       console.log("BASE_RPC_URL: ", process.env.BASE_RPC_URL);
       const ownerPrivateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
@@ -316,6 +330,19 @@ app.post("/send-score", async (req, res) => {
 
       console.log('Transaction sent:', tx.hash);
       const receipt = await tx.wait();
+      const scoreEvent = receipt.logs
+        .map(log => {
+          try {
+            return contract.interface.parseLog({
+              topics: log.topics,
+              data: log.data
+            });
+          } catch (e) {
+            return null;
+          }
+        })
+        .find(event => event?.name === 'ScoreSet');
+
       console.log('Transaction confirmed:', {
         hash: receipt.transactionHash,
         blockNumber: receipt.blockNumber,
@@ -381,7 +408,7 @@ app.post("/create-group", async (req, res) => {
     }
 
     // Set up contract interaction
-    const provider = new ethers.providers.JsonRpcProvider(process.env.BASE_RPC_URL);
+    const provider = new ethers.JsonRpcProvider(process.env.BASE_RPC_URL);
     const ownerPrivateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
     const contractAddress = process.env.CONTRACT_ADDRESS;
 
@@ -397,25 +424,35 @@ app.post("/create-group", async (req, res) => {
     // Register as minter and get tokenId
     console.log("Calling registerMinter...");
     const registerTx = await contract.registerMinter({
-      gasLimit: 500000,
-      maxFeePerGas: ethers.utils.parseUnits("1.5", "gwei"),
-      maxPriorityFeePerGas: ethers.utils.parseUnits("1.5", "gwei")
+      gasLimit: 500000n,
+      maxFeePerGas: ethers.parseUnits("1.5", "gwei"),
+      maxPriorityFeePerGas: ethers.parseUnits("1.5", "gwei")
     });
     
     console.log("Waiting for registerMinter transaction:", registerTx.hash);
     const registerReceipt = await registerTx.wait();
     console.log("RegisterMinter receipt received:", registerReceipt);
 
-    const newGroupEvent = registerReceipt.events?.find(
-      (event) => event.event === 'NewGroup'
-    );
+    // Update event handling for v6
+    const newGroupEvent = registerReceipt.logs
+      .map(log => {
+        try {
+          return contract.interface.parseLog({
+            topics: log.topics,
+            data: log.data
+          });
+        } catch (e) {
+          return null;
+        }
+      })
+      .find(event => event?.name === 'NewGroup');
 
     if (!newGroupEvent) {
-      console.error("No NewGroup event in receipt. Events:", registerReceipt.events);
+      console.error("No NewGroup event in receipt. Logs:", registerReceipt.logs);
       throw new Error('NewGroup event not found in transaction receipt');
     }
 
-    const tokenId = newGroupEvent.args.tokenId.toString();
+    const tokenId = newGroupEvent.args[0].toString(); // or newGroupEvent.args.tokenId.toString();
     console.log("New group created with tokenId:", tokenId);
 
     // Register server wallet as an allowed minter for this tokenId
@@ -431,9 +468,9 @@ app.post("/create-group", async (req, res) => {
       tokenId, 
       "0x",
       {
-        gasLimit: 500000,
-        maxFeePerGas: ethers.utils.parseUnits("1.5", "gwei"),
-        maxPriorityFeePerGas: ethers.utils.parseUnits("1.5", "gwei")
+        gasLimit: 500000n,
+        maxFeePerGas: ethers.parseUnits("1.5", "gwei"),
+        maxPriorityFeePerGas: ethers.parseUnits("1.5", "gwei")
       }
     );
     
@@ -481,7 +518,7 @@ app.post("/api/mint", async (req, res) => {
     }
 
     // Verify sender is member of the group
-    const provider = new ethers.providers.JsonRpcProvider(process.env.BASE_RPC_URL);
+    const provider = new ethers.JsonRpcProvider(process.env.BASE_RPC_URL);
     const contract = new ethers.Contract(
       process.env.CONTRACT_ADDRESS,
       WordleABI,
@@ -489,7 +526,7 @@ app.post("/api/mint", async (req, res) => {
     );
     
     const senderBalance = await contract.balanceOf(senderAddress, tokenId);
-    if (senderBalance.eq(0)) {
+    if (senderBalance === 0n) {
       return res.status(403).json({ error: "Sender is not a member of this group" });
     }
 
@@ -501,7 +538,7 @@ app.post("/api/mint", async (req, res) => {
     for (const address of walletAddresses) {
       try {
         const balance = await contract.balanceOf(address, tokenId);
-        if (balance.gt(0)) {
+        if (balance > 0n) {
           results.push({
             address,
             status: 'skipped',
@@ -512,7 +549,20 @@ app.post("/api/mint", async (req, res) => {
 
         const tx = await contractWithSigner.mint(address, tokenId, "0x");
         await tx.wait();
-        
+        const mintReceipt = await tx.wait();
+        const transferEvent = mintReceipt.logs
+          .map(log => {
+            try {
+              return contract.interface.parseLog({
+                topics: log.topics,
+                data: log.data
+              });
+            } catch (e) {
+              return null;
+            }
+          })
+          .find(event => event?.name === 'TransferSingle');
+
         results.push({
           address,
           status: 'success',
