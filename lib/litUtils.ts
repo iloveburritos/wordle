@@ -1,9 +1,9 @@
-import { LitNodeClient, encryptString, decryptToString } from "@lit-protocol/lit-node-client";
+import { LitNodeClient } from "@lit-protocol/lit-node-client";
+import {encryptString, decryptToString} from "@lit-protocol/encryption"; 
 import { ethers } from "ethers";
-import { LitNetwork } from "@lit-protocol/constants";
+import { LIT_NETWORK, LIT_ABILITY } from "@lit-protocol/constants";
 import { EvmContractConditions } from "@lit-protocol/types";
 import {
-  LitAbility,
   LitAccessControlConditionResource,
   createSiweMessageWithRecaps,
   generateAuthSig,
@@ -17,7 +17,7 @@ import {
     try {
       const evmContractConditions: EvmContractConditions = [
           {
-            contractAddress: "0x7e1676B4A9dF0B27A70614B9A8058e289872071c",
+            contractAddress: "0xF55B6959Cb83294C3D54aac2a3DeCD79F7952CA2",
             functionName: "isAllowed",
             functionParams: [":userAddress"],
             functionAbi: {
@@ -50,7 +50,7 @@ import {
   
       console.log("🔄 Connecting to Lit network...");
       litNodeClient = new LitNodeClient({
-        litNetwork: LitNetwork.Cayenne,
+        litNetwork: LIT_NETWORK.DatilTest,
         debug: false,
       });
       await litNodeClient.connect();
@@ -81,81 +81,72 @@ import {
     chain: string,
   ) => {
     let litNodeClient: LitNodeClient;
-  
+
     try {
-      const evmContractConditions: EvmContractConditions = [
-          {
-            contractAddress: "0x7e1676B4A9dF0B27A70614B9A8058e289872071c",
-            functionName: "isAllowed",
-            functionParams: [":userAddress"],
-            functionAbi: {
-              type: "function",
-              stateMutability: "view",
-              outputs: [
-                {
-                  type: "bool",
-                  name: "",
-                  internalType: "bool",
-                },
-              ],
-              name: "isAllowed",
-              inputs: [
-                {
-                  type: "address",
-                  name: "wallet",
-                  internalType: "address",
-                },
-              ],
-            },
-            chain: "baseSepolia",
-            returnValueTest: {
-              key: "",
-              comparator: "=",
-              value: "true",
-            },
-          },
-        ];
-      console.log("🔄 Connecting to Lit network...");
+      console.log("🔄 Initializing Lit client...");
       litNodeClient = new LitNodeClient({
-        litNetwork: LitNetwork.Cayenne,
+        litNetwork: LIT_NETWORK.DatilTest,
         debug: true,
       });
+
+      console.log("🔄 Connecting to Lit network...");
       await litNodeClient.connect();
       console.log("✅ Connected to Lit network");
-  
-      console.log("🔄 Getting EOA Session Sigs...");
+
+      // Access control conditions for the Wordle game contract
+      const evmContractConditions = [
+        {
+          contractAddress: "0xF55B6959Cb83294C3D54aac2a3DeCD79F7952CA2",
+          functionName: "isAllowed",
+          functionParams: [":userAddress"],
+          functionAbi: {
+            type: "function",
+            stateMutability: "view",
+            outputs: [{ type: "bool", name: "", internalType: "bool" }],
+            name: "isAllowed",
+            inputs: [{ type: "address", name: "wallet", internalType: "address" }],
+          },
+          chain: "baseSepolia",
+          returnValueTest: {
+            key: "",
+            comparator: "=",
+            value: "true",
+          },
+        },
+      ];
+
+      console.log("🔄 Getting session signatures...");
       const sessionSigs = await litNodeClient.getSessionSigs({
         chain,
         expiration: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
         resourceAbilityRequests: [
           {
             resource: new LitAccessControlConditionResource("*"),
-            ability: LitAbility.AccessControlConditionDecryption,
+            ability: LIT_ABILITY.AccessControlConditionDecryption,
           },
         ],
         authNeededCallback: async ({
           resourceAbilityRequests,
           expiration,
-          uri,
-        }) => {
-          const toSign = await createSiweMessageWithRecaps({
-            uri: uri!,
-            expiration: expiration!,
-            resources: resourceAbilityRequests!,
-            walletAddress: await wallet.getAddress(),
-            nonce: await litNodeClient.getLatestBlockhash(),
-            litNodeClient,
-          });
-  
-          return await generateAuthSig({
-            signer: wallet,
-            toSign,
-          });
-        },
-      });
-      console.log("✅ Got EOA Session Sigs");
-  
-      console.log("🔄 Decrypting to file...");
+          uri,}) => {
+            const toSign = await createSiweMessageWithRecaps({
+              uri: uri!,
+              expiration: expiration!,
+              resources: resourceAbilityRequests!,
+              walletAddress: await wallet.getAddress(),
+              nonce: await litNodeClient.getLatestBlockhash(),
+              litNodeClient,
+            });
+    
+            return await generateAuthSig({
+              signer: wallet,
+              toSign,
+            });
+          },
+        });
+        console.log("✅ Got EOA Session Sigs");
+      console.log("✅ Got session signatures, starting decryption...");
+      
       const decryptedString = await decryptToString(
         {
           ciphertext,
@@ -166,6 +157,7 @@ import {
         },
         litNodeClient
       );
+
       console.log("✅ Decrypted file");
   
       if (decryptedString) {

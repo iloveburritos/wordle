@@ -1,7 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { WalletButton } from './WalletModal'
+import { WalletButton } from '@/components/modal/WalletModal'
 
 export default function Header() {
   return (
