@@ -1,188 +1,48 @@
+// app/results/page.tsx
+
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
-import { useWallets } from '@privy-io/react-auth';
-import GameResultGrid from '@/components/GameResultGrid';
-import { GameBoard, LetterState } from '@/lib/types';
+import React from 'react';
+import { useSearchParams } from 'next/navigation';
 
 interface PlayerStat {
   tokenId: string;
-  score: string;
+  score: string | null;
   user: string;
-  timestamp: number;
-}
-
-interface GroupedStats {
-  [tokenId: string]: PlayerStat[];
-}
-
-interface Wallet {
-  address: string;
-}
-
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp * 1000); // Convert from Unix timestamp
-  return date.toLocaleString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
 }
 
 export default function Results() {
-  const router = useRouter();
-  const [groupedStats, setGroupedStats] = useState<GroupedStats>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const { wallets } = useWallets();
-  const userWallet = wallets[0] as Wallet | undefined;
-  const [walletDisplays, setWalletDisplays] = useState<{ [address: string]: string }>({});
-
-  useEffect(() => {
-    try {
-      const storedStats = sessionStorage.getItem('gameResults');
-      if (storedStats) {
-        const parsedData = JSON.parse(storedStats);
-        
-        if (parsedData.groupedResults) {
-          setGroupedStats(parsedData.groupedResults);
-        } else if (parsedData.results && Array.isArray(parsedData.results)) {
-          const grouped = parsedData.results.reduce((acc: GroupedStats, stat: PlayerStat) => {
-            if (!acc[stat.tokenId]) {
-              acc[stat.tokenId] = [];
-            }
-            acc[stat.tokenId].push(stat);
-            return acc;
-          }, {} as GroupedStats);
-          setGroupedStats(grouped);
-        } else {
-          console.error("Invalid data structure received:", parsedData);
-          throw new Error("Invalid data structure");
-        }
-      }
-    } catch (error) {
-      console.error('Error parsing stats:', error);
-    }
-    setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    const resolveWalletDisplays = async () => {
-      const uniqueWallets = new Set<string>();
-      Object.values(groupedStats).forEach(stats => {
-        stats.forEach(stat => uniqueWallets.add(stat.user));
-      });
-
-      try {
-        // Fetch emails for all wallets
-        const emailsResponse = await fetch('/api/walletsToEmails', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ walletAddresses: Array.from(uniqueWallets) })
-        });
-        
-        const { results } = await emailsResponse.json();
-        
-        // Create display format with email if available
-        const displays: { [address: string]: string } = {};
-        for (const wallet of uniqueWallets) {
-          displays[wallet] = results[wallet] || 
-            `${wallet.substring(0, 6)}...${wallet.substring(wallet.length - 4)}`;
-        }
-        
-        setWalletDisplays(displays);
-      } catch (error) {
-        console.error('Error resolving wallet displays:', error);
-        // Fallback to just wallet addresses
-        const displays: { [address: string]: string } = {};
-        uniqueWallets.forEach(wallet => {
-          displays[wallet] = `${wallet.substring(0, 6)}...${wallet.substring(wallet.length - 4)}`;
-        });
-        setWalletDisplays(displays);
-      }
-    };
-    
-    if (Object.keys(groupedStats).length > 0) {
-      resolveWalletDisplays();
-    }
-  }, [groupedStats]);
-
-  const handlePlayAgain = () => {
-    router.push('/game');
-  };
-
-  const isCurrentUser = (address: string) => {
-    return userWallet?.address?.toLowerCase() === address?.toLowerCase();
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black text-white p-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Loading Results...</h1>
-        </div>
-      </div>
-    );
-  }
+  const searchParams = useSearchParams();
+  const statsParam = searchParams.get('stats');
+  const playerStats: PlayerStat[] = statsParam ? JSON.parse(decodeURIComponent(statsParam)) : [];
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Game Results</h1>
+    <div style={{ padding: '20px', textAlign: 'center' }}>
+      <h1>Game Results</h1>
+      <p>Here are your game statistics and achievements:</p>
 
-        {Object.keys(groupedStats).length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-xl mb-4">No scores available yet.</p>
-            <Button onClick={handlePlayAgain}>Play a Game</Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Object.entries(groupedStats).map(([tokenId, stats]) => (
-              <div key={tokenId} className="results-card">
-                <h2 className="results-group-title">Group {tokenId}</h2>
-                <div className="space-y-4">
-                  {stats.map((stat, index) => (
-                    <div key={index} className="border-t border-gray-700/50 pt-3 first:border-0 first:pt-0">
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="results-player">
-                            {walletDisplays[stat.user] || stat.user.slice(0, 6) + '...' + stat.user.slice(-4)}
-                          </span>
-                          {isCurrentUser(stat.user) && (
-                            <span className="results-player-tag">You</span>
-                          )}
-                        </div>
-                        <span className="results-time">
-                          {formatTimestamp(stat.timestamp)}
-                        </span>
-                      </div>
-                      <GameResultGrid board={parseGameBoard(stat.score)} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <table style={{ margin: '20px auto', borderCollapse: 'collapse', width: '80%' }}>
+        <thead>
+          <tr>
+            <th style={{ border: '1px solid black', padding: '8px' }}>Player</th>
+            <th style={{ border: '1px solid black', padding: '8px' }}>Token ID</th>
+            <th style={{ border: '1px solid black', padding: '8px' }}>Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {playerStats.map((stat, index) => (
+            <tr key={index}>
+              <td style={{ border: '1px solid black', padding: '8px' }}>{stat.user}</td>
+              <td style={{ border: '1px solid black', padding: '8px' }}>{stat.tokenId}</td>
+              <td style={{ border: '1px solid black', padding: '8px' }}>
+                {stat.score !== null ? stat.score : 'Failed to Decrypt'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <p style={{ marginTop: '40px' }}>Thank you for playing!</p>
     </div>
-  );
-}
-
-// Helper function to parse the score string into a GameBoard
-function parseGameBoard(scoreString: string): GameBoard {
-  const stateMap: { [key: string]: LetterState } = {
-    'G': LetterState.CORRECT,
-    'Y': LetterState.PRESENT,
-    'X': LetterState.ABSENT
-  };
-
-  const rows = scoreString.match(/.{1,5}/g) || [];
-  return rows.map(row =>
-    row.split('').map(char => ({
-      letter: '',
-      state: stateMap[char] || LetterState.INITIAL
-    }))
   );
 }

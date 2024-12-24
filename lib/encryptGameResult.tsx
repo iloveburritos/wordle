@@ -10,47 +10,26 @@ export interface EncryptedResult {
 }
 
 export async function encryptGameResult(board: GameBoard): Promise<EncryptedResult> {
-  console.log('Original game board:', board);
-  
+  // Map each LetterState to its corresponding character
   const encryptionMap: { [key in LetterState]: string } = {
     [LetterState.CORRECT]: 'G',
     [LetterState.PRESENT]: 'Y',
     [LetterState.ABSENT]: 'X',
-    [LetterState.INITIAL]: 'X'
+    [LetterState.INITIAL]: 'X' // Treat INITIAL as ABSENT for unfilled tiles
   };
 
-  // Find the last completed row (where all tiles have a non-INITIAL state)
-  const lastCompletedRowIndex = board.findIndex(row => row.some(tile => tile.state === LetterState.INITIAL));
-  const completedRows = lastCompletedRowIndex === -1 ? board : board.slice(0, lastCompletedRowIndex);
-
-  console.log('Completed rows before encryption:', completedRows);
-
-  // Flatten only the completed rows and map to encrypted characters
-  const encryptedString = completedRows
-    .flat()
-    .map(tile => {
-      const mappedChar = encryptionMap[tile.state];
-      if (!mappedChar) {
-        console.error('Invalid state encountered:', tile.state);
-        return 'X'; // fallback
-      }
-      return mappedChar;
-    })
+  // Flatten the board up to the number of guesses used and map to the encrypted characters
+  const encryptedString = board
+    .slice(0, board.findIndex(row => row.some(tile => tile.state === LetterState.INITIAL)) + 1 || board.length) // Only include rows that were guessed
+    .flat() // Flatten to a single array of GameTiles
+    .map(tile => encryptionMap[tile.state]) // Map each tile to 'G', 'Y', or 'X'
     .join('');
 
-  console.log('String to be encrypted:', encryptedString);
-  console.log('String length:', encryptedString.length);
-  console.log('Character breakdown:', encryptedString.split('').map(char => `'${char}'`).join(', '));
-
+  // Encrypt the string using the contract conditions
+  console.log('Encrypting game result:', encryptedString);
   const encryptedResult = await encryptStringWithContractConditions(encryptedString);
   if (!encryptedResult) {
     throw new Error('Encryption failed');
   }
-  
-  console.log('Encrypted result:', {
-    ciphertext: encryptedResult.ciphertext.substring(0, 20) + '...',
-    dataToEncryptHash: encryptedResult.dataToEncryptHash
-  });
-  
-  return encryptedResult;
+  return encryptedResult; // No padding, return as-is
 }

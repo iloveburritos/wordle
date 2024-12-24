@@ -9,11 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@lit-protocol/auth-browser": "^6.11.2",
-    "@lit-protocol/auth-helpers": "^7.0.0",
-    "@lit-protocol/constants": "^7.0.0",
-    "@lit-protocol/encryption": "^7.0.0",
-    "@lit-protocol/lit-node-client": "^7.0.0",
+    "@lit-protocol/auth-browser": "^6.11.1",
     "@privy-io/react-auth": "^1.94.2",
     "@privy-io/server-auth": "^1.16.3",
     "@radix-ui/react-dialog": "^1.1.2",
@@ -23,16 +19,13 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
-    "ethers": "^6.13.4",
     "lucide-react": "^0.460.0",
     "next": "15.0.3",
-    "permissionless": "^0.2.23",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "siwe": "^2.3.2",
     "tailwind-merge": "^2.5.4",
-    "tailwindcss-animate": "^1.0.7",
-    "viem": "^2.21.55"
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@shadcn/ui": "^0.0.4",

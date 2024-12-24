@@ -1,189 +1,132 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.22;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract MyERC1155 is ERC1155, Ownable {
-    // Mapping of token ID to wallet address that can mint it
-    mapping(uint256 => address) private allowedMinters;
+contract Wordle is ERC721, Ownable {
+    uint256 private _nextTokenId;
 
-    // Struct to hold score data
-    struct Score {
-        string ciphertext;
-        string datatoencrypthash;
+    // Struct to hold two strings for a user
+    struct ScoreData {
+        string encryptedScore;
+        string hashScore;
     }
+    
+    // Mapping from token ID to string
+    //tokenData is now called userScores
+    mapping(uint256 => ScoreData) private _userScores;
 
-    // Mapping from address to their score struct
-    mapping(address => Score) private scores;
+    // Mapping from addresses to token IDs
+    mapping(address => uint256) private _addressToTokenId;
 
-    // Current game identifier
+    // Counter to track the number of active tokens
+    uint256 public activeTokenCount;
+
+    // Counter to track the game we are on
     uint256 public currentGame;
 
     // Address of the forwarder
     address public forwarder;
 
-    // Number of groups
-    uint256 public numTokens;
+    // Event emitted when token data is cleared
+    event GameEnded(uint256 indexed currentGame);
 
-    // Mapping from address to number of tokens (aka groups) held
-    mapping(address => uint256) public tokensHeld;
+    // Event emitted when a new score is added
+    event ScoreAdded(uint256 indexed tokenId, address indexed user, string encryptedScore, string hashScore, uint256 indexed currentGame);
 
-    // Events
-    event ForwarderUpdated(address indexed newForwarder);
-    event ScoreAdded(uint256 indexed gameId, address indexed user, string ciphertext, string datatoencrypthash);
-    event ScoresCleared(uint256 indexed previousGameId, uint256 indexed newGameId);
-    event NewUser(uint256 indexed tokenId, address indexed user);
-    event RemoveUser(uint256 indexed tokenId, address indexed user);
-    event NewGroup(uint256 indexed tokenId, address indexed owner);
+    // Event emitted when a new player is added (i.e. new token is minted)
+    event newUser(uint256 indexed tokenId, address indexed userAddress);
 
-    constructor(string memory uri, address initialOwner) ERC1155(uri) Ownable(initialOwner) {}
-
-    /**
-    * @dev Function to register yourself as the minter for the current token ID
-    */
-    function registerMinter() external {
-        uint256 tokenId = numTokens; // Use current numTokens as the token ID
-        require(allowedMinters[tokenId] == address(0), "Token ID already has a registered minter");
-        allowedMinters[tokenId] = msg.sender;
-
-        // Increment numTokens after assigning the token ID
-        numTokens++;
-
-        // Emit NewGroup event
-        emit NewGroup(tokenId, msg.sender);
+    constructor(address initialOwner)
+        ERC721("Wordle", "WRDL")
+        Ownable(initialOwner)
+    {
+        // Initialize currentGame to 0
+        currentGame = 0;
     }
 
-
-    /**
-     * @dev Mint function restricted to the allowed minter of the token ID
-     * @param account The address to mint tokens to
-     * @param tokenId The token ID to mint
-     * @param data Additional data
-     */
-    function mint(
-            address account, 
-            uint256 tokenId, 
-            bytes memory data) external {
-        require(allowedMinters[tokenId] == msg.sender, "You are not authorized to mint this token ID");
-        require(balanceOf(account, tokenId) == 0, "Recipient already owns a token with this ID");
-        require(data.length == 0, "Invalid data, pass empty bytes");
-        
-        // Mint one token only
-        _mint(account, tokenId, 1, data);
-
-        // Update the tokensHeld mapping
-        tokensHeld[account]++;
-
-        // Emit NewUser event
-        emit NewUser(tokenId, account);
+    // Modifier to check if the caller is the owner or the forwarder
+    modifier onlyOwnerOrForwarder() {
+        require(msg.sender == owner() || msg.sender == forwarder, "Caller is not owner or forwarder");
+        _;
     }
 
-
-    /**
-     * @dev Burn function that allows both the token holder and the token ID owner (minter) to burn tokens
-     * @param account The address holding the tokens
-     * @param tokenId The token ID to burn
-     */
-    function burn(address account, uint256 tokenId) external {
-        require(
-            account == msg.sender || allowedMinters[tokenId] == msg.sender,
-            "Only the token holder or the token ID owner can burn"
-        );
-        require(balanceOf(account, tokenId) > 0, "Account does not own this token");
-
-        // Burn one token only
-        _burn(account, tokenId, 1);
-
-        // Decrease the tokensHeld mapping
-        tokensHeld[account]--;
-        
-        // Remove score if the holder has no tokens left
-        if (tokensHeld[account] == 0) {
-            delete scores[account];
-        }
-
-        // Emit RemoveUser event
-        emit RemoveUser(tokenId, account);
-    }
-
-    /**
-     * @dev Function to set the encrypted score for a user.
-     * @param user The wallet address of the user
-     * @param scoreCiphertext The encrypted score
-     * @param scoreHash The hash of the score data
-     */
-    function setScore(
-        address user,
-        string memory scoreCiphertext,
-        string memory scoreHash
-    ) external onlyOwner {
-        // Check if the user holds at least one NFT
-        uint256 totalBalance = 0;
-
-        // Iterate over token IDs to check if the user owns any tokens
-        for (uint256 tokenId = 0; tokenId <= numTokens; tokenId++) {
-            totalBalance += balanceOf(user, tokenId);
-        }
-
-        require(totalBalance > 0, "User must hold at least one NFT to submit a score");
-
-        // Check if a score has already been submitted
-        require(bytes(scores[user].ciphertext).length == 0, "Score already submitted for this game");
-
-        // Add the encrypted score to the mapping
-        scores[user] = Score(scoreCiphertext, scoreHash);
-
-        // Emit ScoreAdded event
-        emit ScoreAdded(currentGame, user, scoreCiphertext, scoreHash);
-    }
-
-    /**
-     * @dev Get the score data for a user
-     * @param user The wallet address of the user
-     * @return The score struct containing ciphertext and datatoencrypthash
-     */
-    function getScore(address user) external view returns (Score memory) {
-        return scores[user];
-    }
-
-    /**
-     * @dev Set or update the forwarder address.
-     * @param newForwarder The new forwarder address
-     */
-    function setForwarder(address newForwarder) external onlyOwner {
-        require(newForwarder != address(0), "Forwarder address cannot be zero");
+    // Function to set the forwarder address (only callable by the owner) used by Chainlink for automatic reset
+    function setForwarder(address newForwarder) public onlyOwner {
         forwarder = newForwarder;
-        emit ForwarderUpdated(newForwarder);
     }
 
-    /**
-     * @dev Clear all scores and increment the current game counter.
-     * Can only be called by the forwarder.
-     */
-    function clearScore() external {
-        require(msg.sender == forwarder, "Only the forwarder can call this function");
+    // Function to mint a new token
+    function safeMint(address to) public onlyOwner {
+        uint256 tokenId = _nextTokenId++;
+        _safeMint(to, tokenId);
 
-        // Clear all scores
-        for (uint256 i = 0; i < currentGame; i++) {
-            delete scores[msg.sender];
+        // Update the address-to-token mapping
+        _addressToTokenId[to] = tokenId;
+
+        // Emit event for indexing purposes
+        emit newUser(tokenId, to);
+    }
+
+    // Function to set token data for a token ID
+    function setUserScore(uint256 tokenId, string memory encryptedScore, string memory hashScore) public onlyOwner {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+
+        // Update token data if it is currently empty
+        if (bytes(_userScores[tokenId].encryptedScore).length == 0) {
+            _userScores[tokenId] = ScoreData(encryptedScore, hashScore);
+            activeTokenCount++;
         }
+
+        // Get the wallet address associated with the token ID
+        address user = ownerOf(tokenId);
+
+        // Emit the ScoreAdded event
+        emit ScoreAdded(tokenId, user, encryptedScore, hashScore, currentGame);
+    }
+
+    // Function to get the token data for a token ID
+    function getScore(uint256 tokenId) public view returns (string memory encryptedScore, string memory hashScore) {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+
+        ScoreData memory data = _userScores[tokenId];
+
+        return (data.encryptedScore, data.hashScore);
+    }
+
+    // Function to clear all token data
+    function clearScores() public onlyOwnerOrForwarder {
+        // Iterate through the mapping and clear each token's data
+        for (uint256 tokenId = 0; tokenId < _nextTokenId; tokenId++) {
+            if (bytes(_userScores[tokenId].encryptedScore).length != 0) {
+
+                // Clear the data
+                delete _userScores[tokenId];
+            }
+        }
+
+        // Reset the active token count
+        activeTokenCount = 0;
+
+        // Emit an event with the token ID and corresponding message
+        emit GameEnded(currentGame);
 
         // Increment the current game counter
-        uint256 previousGameId = currentGame;
         currentGame++;
-
-        // Emit event for cleared scores
-        emit ScoresCleared(previousGameId, currentGame);
     }
 
-        /**
-    * @dev Check if a wallet address is allowed based on the score mapping.
-    * @param wallet The wallet address to check.
-    * @return True if the score mapping for the address is non-empty, false otherwise.
-    */
-    function isAllowed(address wallet) external view returns (bool) {
-        return bytes(scores[wallet].ciphertext).length > 0;
-    }
+    // Function to check if a wallet is allowed based on its NFT ownership and token data
+    function isAllowed(address wallet) public view returns (bool) {
+        // Always return true if the caller is the contract owner
+        if (wallet == owner()) {
+            return true;
+        }
 
+        require(balanceOf(wallet) > 0, "Address does not own any tokens");
+
+        // Retrieve the token ID directly from the mapping
+        uint256 tokenId = _addressToTokenId[wallet];
+        return bytes(_userScores[tokenId].encryptedScore).length != 0;
+    }
 }

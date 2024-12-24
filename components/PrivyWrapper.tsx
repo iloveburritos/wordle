@@ -2,29 +2,27 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { PrivyProvider } from '@privy-io/react-auth';
 
-export function PrivyWrapper({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-
+export const PrivyWrapper = ({ children }: { children: React.ReactNode }) => {
+  // Use useEffect to log when the component mounts
   useEffect(() => {
-    setMounted(true);
+    console.log("PrivyWrapper loaded and PrivyProvider is now wrapping the app.");
   }, []);
-
-  if (!mounted) {
-    return null;
-  }
 
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
+      clientId={process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID || ''}
       config={{
-        loginMethods: ['email', 'wallet'],
         appearance: {
+          landingHeader: 'Welcome to onchain Wordle',
+          loginMessage: 'Sign in to share your scores with friends', 
           theme: 'dark',
-        },
+        }
       }}
+      
     >
       {children}
     </PrivyProvider>
