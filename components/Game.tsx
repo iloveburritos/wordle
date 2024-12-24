@@ -5,10 +5,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getWordOfTheDay, allWords } from '../lib/words';
 import Keyboard from './Keyboard';
-import { LetterState, icons, GameBoard, GameResult } from '../lib/types';
+import { LetterState, icons, GameBoard } from '../lib/types';
 import { encryptGameResult } from '../lib/encryptGameResult'; // Assuming you have this encryption function
 import styles from '../styles/Game.module.css';
-import GameOverModal from './GameOverModal';
+import GameOverModal from '@/components/modal/GameOverModal';
+import StatsModal from '@/components/modal/StatsModal';
+import ViewScoresButton from '@/components/ViewScoresButton';
 
 // Define interface for ciphertext and dataToEncryptHash
 export interface EncryptedResult {
@@ -29,7 +31,6 @@ export default function Game() {
 
   const [currentRowIndex, setCurrentRowIndex] = useState(0);
   const [message, setMessage] = useState('');
-  const [grid, setGrid] = useState('');
   const [shakeRowIndex, setShakeRowIndex] = useState(-1);
   const [success, setSuccess] = useState(false);
   const [letterStates, setLetterStates] = useState<Record<string, LetterState>>({});
@@ -37,59 +38,29 @@ export default function Game() {
   const [isGameOverModalOpen, setIsGameOverModalOpen] = useState(false);
   const [gameOverMessage, setGameOverMessage] = useState('');
   const [encryptedResult, setEncryptedResult] = useState<EncryptedResult | null>(null);
+  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+  const [viewScoresProgress, setViewScoresProgress] = useState(0);
+  const [isViewingScores, setIsViewingScores] = useState(false);
   
   // Construct the current row based on the current row index
   const currentRow = useMemo(() => board[currentRowIndex], [board, currentRowIndex]);
 
-  // Key handling
-  const onKey = useCallback(
-    (key: string) => {
-      if (!allowInput) return;
-      if (/^[a-zA-Z]$/.test(key)) {
-        fillTile(key.toLowerCase());
-      } else if (key === 'Backspace') {
-        clearTile();
-      } else if (key === 'Enter') {
-        completeRow();
-      }
-    },
-    [allowInput, currentRowIndex, board]
-  );
-
-  useEffect(() => {
-    const handleKeyup = (e: KeyboardEvent) => onKey(e.key);
-    window.addEventListener('keyup', handleKeyup);
-    return () => window.removeEventListener('keyup', handleKeyup);
-  }, [onKey]);
-
-  // Function to handle sending result to API
-  
-  /*const sendResultToAPI = async (encryptedResult: string, isSuccessful: boolean, score: number) => {
-    try {
-      const response = await fetch('/api/submit-result', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          encryptedResult,
-          isSuccessful,
-          score,
-        }),
-      });
-
-      if (!response.ok) {
-        console.error('Failed to send result:', response.statusText);
-      } else {
-        console.log('Result sent successfully');
-      }
-    } catch (error) {
-      console.error('Error sending result:', error);
+  // After state declarations and before fillTile
+  const showMessage = useCallback((msg: string, time = 1000) => {
+    setMessage(msg);
+    if (time > 0) {
+      setTimeout(() => setMessage(''), time);
     }
-  };*/
+  }, []);
 
-  // Functions to handle tile filling, clearing, and row completion
-  const fillTile = (letter: string) => {
+  const shake = useCallback(() => {
+    setShakeRowIndex(currentRowIndex);
+    setTimeout(() => setShakeRowIndex(-1), 1000);
+  }, [currentRowIndex]);
+
+  // Then your existing fillTile, clearTile functions...
+
+  const fillTile = useCallback((letter: string) => {
     setBoard((prevBoard) => {
       const newBoard = [...prevBoard];
       const currentRow = [...newBoard[currentRowIndex]];
@@ -100,9 +71,9 @@ export default function Game() {
       }
       return newBoard;
     });
-  };
+  }, [currentRowIndex]);
 
-  const clearTile = () => {
+  const clearTile = useCallback(() => {
     setBoard((prevBoard) => {
       const newBoard = [...prevBoard];
       const currentRow = [...newBoard[currentRowIndex]];
@@ -115,9 +86,9 @@ export default function Game() {
       newBoard[currentRowIndex] = currentRow;
       return newBoard;
     });
-  };
+  }, [currentRowIndex]);
 
-  const completeRow = () => {
+  const completeRow = useCallback(() => {
     if (currentRow.every((tile) => tile.letter)) {
       const guess = currentRow.map((tile) => tile.letter).join('');
       if (!allWords.includes(guess) && guess !== answer) {
@@ -175,17 +146,20 @@ export default function Game() {
       if (newRow.every((tile) => tile.state === LetterState.CORRECT) || currentRowIndex === board.length - 1) {
         const finalSuccess = newRow.every((tile) => tile.state === LetterState.CORRECT);
         setTimeout(async () => {
-          const message = finalSuccess ? ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][currentRowIndex] : `The answer was ${answer.toUpperCase()}`;
+          const message = finalSuccess 
+            ? ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][currentRowIndex] 
+            : `The answer was ${answer.toUpperCase()}`;
           setGameOverMessage(message);
-          setGrid(genResultGrid());
           setSuccess(finalSuccess);
-          setIsGameOverModalOpen(true);
-
-          // Encrypt and send the game result to the API endpoint
+          
+          // Encrypt the game result
           const encryptedResult = await encryptGameResult(board);
           console.log('Encrypted result:', encryptedResult);
           setEncryptedResult(encryptedResult);
-          //await sendResultToAPI(encryptedResult, finalSuccess, currentRowIndex + 1);
+          
+          // Ensure modal shows up after encryption
+          setGameOverMessage(message);
+          setIsGameOverModalOpen(true);
         }, 1600);
       } else if (currentRowIndex < board.length - 1) {
         setCurrentRowIndex((prevIndex) => prevIndex + 1);
@@ -195,19 +169,35 @@ export default function Game() {
       shake();
       showMessage('Not enough letters');
     }
-  };
+  }, [
+    currentRow, 
+    answer, 
+    board, 
+    currentRowIndex, 
+    shake,
+    showMessage
+  ]);
 
-  const showMessage = (msg: string, time = 1000) => {
-    setMessage(msg);
-    if (time > 0) {
-      setTimeout(() => setMessage(''), time);
-    }
-  };
+  // Now define onKey after the other functions
+  const onKey = useCallback(
+    (key: string) => {
+      if (!allowInput) return;
+      if (/^[a-zA-Z]$/.test(key)) {
+        fillTile(key.toLowerCase());
+      } else if (key === 'Backspace') {
+        clearTile();
+      } else if (key === 'Enter') {
+        completeRow();
+      }
+    },
+    [allowInput, fillTile, clearTile, completeRow]
+  );
 
-  const shake = () => {
-    setShakeRowIndex(currentRowIndex);
-    setTimeout(() => setShakeRowIndex(-1), 1000);
-  };
+  useEffect(() => {
+    const handleKeyup = (e: KeyboardEvent) => onKey(e.key);
+    window.addEventListener('keyup', handleKeyup);
+    return () => window.removeEventListener('keyup', handleKeyup);
+  }, [onKey]);
 
   const genResultGrid = () => {
     return board
@@ -216,17 +206,26 @@ export default function Game() {
       .join('\n');
   };
 
-  const handleShare = () => {
-    console.log('Share functionality to be implemented');
-  };
 
-  const handleSeeResults = () => {
-    console.log('See results functionality to be implemented');
-  };
 
   return (
     <div className="pt-4">
-      {message && <div className={styles.message}>{message}</div>}
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex gap-2">
+          {message && <div className={styles.message}>{message}</div>}
+          {isViewingScores && (
+            <div className={styles.message}>
+              Decrypting scores... {viewScoresProgress}%
+            </div>
+          )}
+        </div>
+        <ViewScoresButton
+          variant="outline"
+          onLoadingChange={setIsViewingScores}
+          onProgressChange={setViewScoresProgress}
+          onError={(error) => setMessage(error)}
+        />
+      </div>
       <div id="board" className={styles.board}>
         {board.map((row, rowIndex) => (
           <div
@@ -262,17 +261,18 @@ export default function Game() {
         <GameOverModal
           isOpen={isGameOverModalOpen}
           onClose={() => setIsGameOverModalOpen(false)}
-          onShare={handleShare}
-          onSeeResults={handleSeeResults}
           gameResult={{
             board,
-            encryptedString: encryptedResult, // Assuming encryption logic is handled elsewhere
+            encryptedString: encryptedResult,
             isSuccessful: success,
             score: currentRowIndex + 1,
           }}
           message={gameOverMessage}
         />
       )}
+      <StatsModal 
+        onClose={() => setIsStatsModalOpen(false)} 
+      />
     </div>
   );
 }

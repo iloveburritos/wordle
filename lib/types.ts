@@ -16,7 +16,7 @@ export const enum LetterState {
     [LetterState.CORRECT]: '🟩',
     [LetterState.PRESENT]: '🟨',
     [LetterState.ABSENT]: '⬜',
-    [LetterState.INITIAL]: null
+    [LetterState.INITIAL]: '⬜'
   }
 
   export type GameTile = {
@@ -33,4 +33,9 @@ export const enum LetterState {
     encryptedString: EncryptedGameResult;
     isSuccessful: boolean;
     score: number;
+    encryptedSymmetricKey?: string;
+    dataToEncryptHash?: string;
   }
+
+  // Update the return type for decryptGameResult
+  export type DecryptedString = string;
