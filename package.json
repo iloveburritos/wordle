@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "debug": "node debug.js"
   },
   "dependencies": {
     "@lit-protocol/auth-browser": "^6.11.2",

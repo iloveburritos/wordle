@@ -51,16 +51,31 @@ export default function SubmitScoreButton({
       return;
     }
 
+    if (!apiUrl) {
+      onSubmitError('API URL not configured. Please check your environment variables.');
+      return;
+    }
+
     setIsSubmitting(true);
     onSubmitStart();
 
     try {
+      console.log('Attempting to connect to API at:', `${apiUrl}/generate-nonce`);
+      
       const response = await fetch(`${apiUrl}/generate-nonce`, {
         method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
+      console.log('API Response status:', response.status);
+      console.log('API Response headers:', response.headers);
+
       if (!response.ok) {
-        throw new Error('Failed to generate nonce');
+        const errorText = await response.text();
+        console.error('API Error response:', errorText);
+        throw new Error(`Failed to generate nonce: ${response.status} ${errorText}`);
       }
 
       const { token } = await response.json();
@@ -84,6 +99,8 @@ export default function SubmitScoreButton({
       const message = siweMessage.prepareMessage();
       const signature = await signer.signMessage(message);
 
+      console.log('Submitting score to API at:', `${apiUrl}/send-score`);
+      
       const apiResponse = await fetch(`${apiUrl}/send-score`, {
         method: 'POST',
         headers: {
@@ -100,13 +117,17 @@ export default function SubmitScoreButton({
         }),
       });
 
+      console.log('Score submission response status:', apiResponse.status);
+
       if (!apiResponse.ok) {
         const errorData = await apiResponse.json();
+        console.error('Score submission error:', errorData);
         throw new Error(errorData.error || 'Failed to submit score');
       }
 
       onSubmitComplete();
     } catch (error) {
+      console.error('Submit score error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit score';
       if (errorMessage.includes('Score already submitted for this game')) {
         onSubmitComplete();

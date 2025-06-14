@@ -11,10 +11,29 @@ dotenv.config({ path: './.env.local' });
 
 const app = express();
 
-// Enable CORS middleware
-app.use(cors());
+// Enable CORS middleware with proper configuration
+app.use(cors({
+  origin: [
+    'https://wordl3.com',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json()); // Middleware to parse JSON request bodies
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({ 
+    status: "healthy", 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
 
 // POST endpoint to mint NFTs
 app.post("/mint", async (req, res) => {
