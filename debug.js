@@ -1,14 +1,26 @@
 // Debug script to test API connectivity and environment variables
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aqueous-lowlands-88518-a9a3144c0255.herokuapp.com';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Load environment variables from .env.local
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, '.env.local') });
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://wordl3-server-14ba565fcb76.herokuapp.com/';
+
+// Remove trailing slash if present to avoid double slashes
+const cleanApiUrl = API_URL.replace(/\/$/, '');
 
 async function testAPI() {
   console.log('🔍 Testing API connectivity...');
-  console.log('API URL:', API_URL);
+  console.log('API URL:', cleanApiUrl);
   
   try {
     // Test health endpoint
     console.log('\n1. Testing health endpoint...');
-    const healthResponse = await fetch(`${API_URL}/health`);
+    const healthResponse = await fetch(`${cleanApiUrl}/health`);
     console.log('Health status:', healthResponse.status);
     
     if (healthResponse.ok) {
@@ -20,7 +32,7 @@ async function testAPI() {
     
     // Test generate-nonce endpoint
     console.log('\n2. Testing generate-nonce endpoint...');
-    const nonceResponse = await fetch(`${API_URL}/generate-nonce`);
+    const nonceResponse = await fetch(`${cleanApiUrl}/generate-nonce`);
     console.log('Nonce status:', nonceResponse.status);
     
     if (nonceResponse.ok) {

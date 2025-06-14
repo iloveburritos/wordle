@@ -39,7 +39,7 @@ Your Alchemy app is inactive (403 Forbidden errors). You need to:
 4. Update your RPC URLs with the new API key
 
 ### 3. **Backend Server Not Running**
-The Heroku app `aqueous-lowlands-88518-a9a3144c0255.herokuapp.com` is not accessible.
+The Heroku app `wordl3-server.herokuapp.com` is not accessible.
 
 ## 🔧 Step-by-Step Fix
 

@@ -1,0 +1,56 @@
+specVersion: 1.3.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: wordl3
+    network: base-sepolia
+    source:
+      address: "0xF55B6959Cb83294C3D54aac2a3DeCD79F7952CA2"
+      abi: wordl3
+      startBlock: 19106442
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - ApprovalForAll
+        - ForwarderUpdated
+        - NewGroup
+        - NewUser
+        - OwnershipTransferred
+        - RemoveUser
+        - ScoreAdded
+        - ScoresCleared
+        - TransferBatch
+        - TransferSingle
+        - URI
+      abis:
+        - name: wordl3
+          file: ./abis/wordl3.json
+      eventHandlers:
+        - event: ApprovalForAll(indexed address,indexed address,bool)
+          handler: handleApprovalForAll
+        - event: ForwarderUpdated(indexed address)
+          handler: handleForwarderUpdated
+        - event: NewGroup(indexed uint256,indexed address)
+          handler: handleNewGroup
+        - event: NewUser(indexed uint256,indexed address)
+          handler: handleNewUser
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: RemoveUser(indexed uint256,indexed address)
+          handler: handleRemoveUser
+        - event: ScoreAdded(indexed uint256,indexed address,string,string)
+          handler: handleScoreAdded
+        - event: ScoresCleared(indexed uint256,indexed uint256)
+          handler: handleScoresCleared
+        - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
+          handler: handleTransferBatch
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleTransferSingle
+        - event: URI(string,indexed uint256)
+          handler: handleURI
+      file: ./src/wordl-3.ts
