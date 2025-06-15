@@ -27,7 +27,7 @@ ETH_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
 CONTRACT_ADDRESS=YOUR_CONTRACT_ADDRESS
 CONTRACT_OWNER_PRIVATE_KEY=YOUR_PRIVATE_KEY
 JWT_SECRET=YOUR_JWT_SECRET
-SUBGRAPH_URL=https://api.studio.thegraph.com/query/94961/wordl31155v2/version/latest
+SUBGRAPH_URL=https://api.studio.thegraph.com/query/113921/wordl-3/version/latest
 FRONTEND_URL=http://localhost:3000
 ```
 

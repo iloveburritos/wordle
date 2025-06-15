@@ -34,6 +34,7 @@ export default function SubmitScoreButton({
   const { tokenIds, loading: loadingTokens, error: tokenError } = useWalletTokens(userWallet?.address);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const BASE_SEPOLIA_CHAIN_ID = '0x14A34'; // 84532 in hex
 
   const handleSubmitScore = async () => {
     if (loadingTokens) {
@@ -60,6 +61,28 @@ export default function SubmitScoreButton({
     onSubmitStart();
 
     try {
+      // Ensure wallet is on Base Sepolia before proceeding
+      const userSigner = await userWallet.getEthereumProvider();
+      const provider = new ethers.BrowserProvider(userSigner);
+      const network = await provider.getNetwork();
+      if (Number(network.chainId) !== 84532) {
+        try {
+          await userSigner.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: BASE_SEPOLIA_CHAIN_ID }],
+          });
+        } catch (switchError) {
+          console.error('Failed to switch to Base Sepolia:', switchError);
+          onSubmitError('Failed to switch to Base Sepolia network. Please approve the network switch in your wallet.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      // Re-instantiate provider and signer after switching
+      const switchedProvider = new ethers.BrowserProvider(userSigner);
+      const signer = await switchedProvider.getSigner();
+      const address = userWallet.address;
+
       console.log('Attempting to connect to API at:', `${apiUrl}/generate-nonce`);
       
       const response = await fetch(`${apiUrl}/generate-nonce`, {
@@ -81,18 +104,13 @@ export default function SubmitScoreButton({
       const { token } = await response.json();
       const { nonce } = JSON.parse(atob(token.split('.')[1]));
 
-      const userSigner = await userWallet.getEthereumProvider();
-      const provider = new ethers.BrowserProvider(userSigner);
-      const signer = await provider.getSigner();
-      const address = userWallet.address;
-
       const siweMessage = new SiweMessage({
         domain: typeof window !== 'undefined' ? window.location.host : '',
         address,
         statement: 'Sign in with Ethereum to submit your score.',
         uri: typeof window !== 'undefined' ? window.location.origin : '',
         version: '1',
-        chainId: Number((await provider.getNetwork()).chainId),
+        chainId: 84532,
         nonce,
       });
 

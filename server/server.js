@@ -143,7 +143,7 @@ app.post("/mint", async (req, res) => {
   }
 });
 
-const SUBGRAPH_URL = process.env.SUBGRAPH_URL || 'https://api.studio.thegraph.com/query/94961/wordl31155v2/version/latest';
+const SUBGRAPH_URL = process.env.SUBGRAPH_URL || 'https://api.studio.thegraph.com/query/113921/wordl-3/version/latest';
 
 if (!SUBGRAPH_URL) {
   throw new Error('SUBGRAPH_URL is not defined in environment variables');
